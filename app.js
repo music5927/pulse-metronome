@@ -58,8 +58,8 @@
     btnJumpConfirm: $('btn-jump-confirm')
   };
 
-  const SETTINGS_KEY = 'pulse-metronome-settings-v9';
-  const SONGS_KEY = 'pulse-metronome-songs-v9';
+  const SETTINGS_KEY = 'pulse-metronome-settings-v10';
+  const SONGS_KEY = 'pulse-metronome-songs-v10';
   const SCHEDULE_AHEAD_SECONDS = 0.12;
   const LOOKAHEAD_MS = 25;
   const SILENT_WAV = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQQAAAAA';
@@ -69,6 +69,7 @@
     localStorage.removeItem('pulse-metronome-songs-v6');
     localStorage.removeItem('pulse-metronome-songs-v7');
     localStorage.removeItem('pulse-metronome-songs-v8');
+    localStorage.removeItem('pulse-metronome-songs-v9');
     localStorage.removeItem('pulse-metronome-songs');
   } catch (_) {}
 
@@ -98,6 +99,320 @@
 
   // 기본 트랙 메트로놈 프리셋 (Mrs. GREEN APPLE 정밀 분석 기반 샘플, Ready 4마디 시작)
   const DEFAULT_SONGS = [
+  {
+    "id": "hebe-parade",
+    "name": "HEBE - Parade",
+    "loop": true,
+    "sections": [
+      {
+        "id": "hb-1",
+        "name": "Intro",
+        "bars": 12,
+        "bpm": 94,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "hb-2",
+        "name": "Verse",
+        "bars": 8,
+        "bpm": 94,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "hb-3",
+        "name": "Pre-Chorus",
+        "bars": 8,
+        "bpm": 94,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "hb-4",
+        "name": "Chorus",
+        "bars": 16,
+        "bpm": 94,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "hb-5",
+        "name": "Interlude",
+        "bars": 8,
+        "bpm": 94,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "hb-6",
+        "name": "Solo",
+        "bars": 1,
+        "bpm": 94,
+        "beats": 2,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "hb-7",
+        "name": "Solo",
+        "bars": 8,
+        "bpm": 94,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": false,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "hb-8",
+        "name": "Solo",
+        "bars": 1,
+        "bpm": 94,
+        "beats": 2,
+        "division": 4,
+        "guideVoice": false,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "hb-9",
+        "name": "Chorus",
+        "bars": 16,
+        "bpm": 94,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "hb-10",
+        "name": "Outro",
+        "bars": 4,
+        "bpm": 94,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      }
+    ]
+  },
+  {
+    "id": "mga-start",
+    "name": "Mrs Green Apple - StaRt",
+    "loop": true,
+    "sections": [
+      {
+        "id": "st-0",
+        "name": "Ready",
+        "bars": 4,
+        "bpm": 190,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "st-1",
+        "name": "Intro",
+        "bars": 8,
+        "bpm": 190,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "st-2",
+        "name": "Verse",
+        "bars": 8,
+        "bpm": 190,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "st-3",
+        "name": "Pre-Chorus",
+        "bars": 8,
+        "bpm": 190,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "st-4",
+        "name": "Chorus",
+        "bars": 16,
+        "bpm": 190,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "st-5",
+        "name": "Interlude",
+        "bars": 8,
+        "bpm": 190,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "st-6",
+        "name": "Verse",
+        "bars": 8,
+        "bpm": 190,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "st-7",
+        "name": "Pre-Chorus",
+        "bars": 8,
+        "bpm": 190,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "st-8",
+        "name": "Chorus",
+        "bars": 16,
+        "bpm": 190,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "st-9",
+        "name": "Interlude",
+        "bars": 8,
+        "bpm": 190,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "st-10",
+        "name": "Solo",
+        "bars": 8,
+        "bpm": 190,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "st-11",
+        "name": "Bridge",
+        "bars": 16,
+        "bpm": 190,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "st-12",
+        "name": "Interlude",
+        "bars": 8,
+        "bpm": 190,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "st-13",
+        "name": "Chorus",
+        "bars": 17,
+        "bpm": 190,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "st-14",
+        "name": "Outro",
+        "bars": 21,
+        "bpm": 190,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      }
+    ]
+  },
   {
     "id": "mga-a-posteriori",
     "name": "Mrs Green Apple - A Posteriori",
@@ -488,181 +803,6 @@
         ]
       }
     ]
-  },
-  {
-    "id": "mga-start",
-    "name": "Mrs Green Apple - StaRt",
-    "loop": true,
-    "sections": [
-      {
-        "id": "st-1",
-        "name": "Intro",
-        "bars": 8,
-        "bpm": 190,
-        "beats": 4,
-        "division": 4,
-        "guideVoice": true,
-        "accentBeats": [
-          0
-        ]
-      },
-      {
-        "id": "st-2",
-        "name": "Verse",
-        "bars": 8,
-        "bpm": 190,
-        "beats": 4,
-        "division": 4,
-        "guideVoice": true,
-        "accentBeats": [
-          0
-        ]
-      },
-      {
-        "id": "st-3",
-        "name": "Pre-Chorus",
-        "bars": 8,
-        "bpm": 190,
-        "beats": 4,
-        "division": 4,
-        "guideVoice": true,
-        "accentBeats": [
-          0
-        ]
-      },
-      {
-        "id": "st-4",
-        "name": "Chorus",
-        "bars": 16,
-        "bpm": 190,
-        "beats": 4,
-        "division": 4,
-        "guideVoice": true,
-        "accentBeats": [
-          0
-        ]
-      },
-      {
-        "id": "st-5",
-        "name": "Interlude",
-        "bars": 8,
-        "bpm": 190,
-        "beats": 4,
-        "division": 4,
-        "guideVoice": true,
-        "accentBeats": [
-          0
-        ]
-      },
-      {
-        "id": "st-6",
-        "name": "Verse",
-        "bars": 8,
-        "bpm": 190,
-        "beats": 4,
-        "division": 4,
-        "guideVoice": true,
-        "accentBeats": [
-          0
-        ]
-      },
-      {
-        "id": "st-7",
-        "name": "Pre-Chorus",
-        "bars": 8,
-        "bpm": 190,
-        "beats": 4,
-        "division": 4,
-        "guideVoice": true,
-        "accentBeats": [
-          0
-        ]
-      },
-      {
-        "id": "st-8",
-        "name": "Chorus",
-        "bars": 16,
-        "bpm": 190,
-        "beats": 4,
-        "division": 4,
-        "guideVoice": true,
-        "accentBeats": [
-          0
-        ]
-      },
-      {
-        "id": "st-9",
-        "name": "Interlude",
-        "bars": 8,
-        "bpm": 190,
-        "beats": 4,
-        "division": 4,
-        "guideVoice": true,
-        "accentBeats": [
-          0
-        ]
-      },
-      {
-        "id": "st-10",
-        "name": "Solo",
-        "bars": 8,
-        "bpm": 190,
-        "beats": 4,
-        "division": 4,
-        "guideVoice": true,
-        "accentBeats": [
-          0
-        ]
-      },
-      {
-        "id": "st-11",
-        "name": "Bridge",
-        "bars": 16,
-        "bpm": 190,
-        "beats": 4,
-        "division": 4,
-        "guideVoice": true,
-        "accentBeats": [
-          0
-        ]
-      },
-      {
-        "id": "st-12",
-        "name": "Interlude",
-        "bars": 8,
-        "bpm": 190,
-        "beats": 4,
-        "division": 4,
-        "guideVoice": true,
-        "accentBeats": [
-          0
-        ]
-      },
-      {
-        "id": "st-13",
-        "name": "Chorus",
-        "bars": 17,
-        "bpm": 190,
-        "beats": 4,
-        "division": 4,
-        "guideVoice": true,
-        "accentBeats": [
-          0
-        ]
-      },
-      {
-        "id": "st-14",
-        "name": "Outro",
-        "bars": 21,
-        "bpm": 190,
-        "beats": 4,
-        "division": 4,
-        "guideVoice": true,
-        "accentBeats": [
-          0
-        ]
-      }
-    ]
   }
 ];
 
@@ -671,7 +811,7 @@
   const savedSongs = (() => {
     try {
       const data = JSON.parse(localStorage.getItem(SONGS_KEY));
-      return Array.isArray(data) && data.length > 0 && data.some((s) => s.id && s.id.startsWith('mga-')) ? data : DEFAULT_SONGS;
+      return Array.isArray(data) && data.length > 0 && data.some((s) => s.id && (s.id === 'hebe-parade' || s.id === 'mga-start')) ? data : DEFAULT_SONGS;
     } catch {
       return DEFAULT_SONGS;
     }
