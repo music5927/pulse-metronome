@@ -17,58 +17,180 @@
       <p id="status" class="status" aria-live="polite">준비됨</p>
     </header>
 
-    <section class="tempo-panel" aria-label="템포 설정">
-      <p class="section-label">TEMPO</p>
-      <div class="tempo-display">
-        <button class="round-button subtle" id="tempo-down" type="button" aria-label="BPM 1 낮추기">−</button>
-        <label class="tempo-input-wrap">
-          <input id="tempo-input" type="number" inputmode="numeric" min="40" max="240" value="120" aria-label="분당 박자 BPM" />
-          <span>BPM</span>
-        </label>
-        <button class="round-button subtle" id="tempo-up" type="button" aria-label="BPM 1 높이기">+</button>
-      </div>
-      <input id="tempo-slider" class="tempo-slider" type="range" min="40" max="240" value="120" aria-label="BPM 슬라이더" />
-      <div class="range-labels"><span>40</span><span>240</span></div>
-    </section>
+    <!-- 모드 전환 탭 (기본 메트로놈 vs 곡 & 마디 시퀀서) -->
+    <nav class="mode-nav" role="tablist" aria-label="메트로놈 모드 선택">
+      <button id="tab-single" class="mode-tab active" role="tab" aria-selected="true" type="button">
+        ⏱️ 기본 메트로놈
+      </button>
+      <button id="tab-song" class="mode-tab" role="tab" aria-selected="false" type="button">
+        🎵 곡 & 마디 시퀀서
+      </button>
+    </nav>
 
-    <section class="beat-section" aria-label="박자와 클릭 설정">
+    <!-- 공통 박자 시각화 영역 (단일 모드 & 곡 모드 공유) -->
+    <section class="beat-visual-section" aria-label="현재 박자 및 마디 표시">
       <div class="beat-visual-wrap">
         <div id="beat-light" class="beat-light idle" aria-hidden="true">
           <span id="beat-number">1</span>
           <span class="beat-total">/ <span id="beat-count">4</span></span>
         </div>
         <p id="beat-caption">다음 박자를 기다리는 중</p>
-      </div>
-
-      <div class="setting-grid">
-        <label class="setting-card" for="beats-input">
-          <span>박자</span>
-          <select id="beats-input" aria-label="한 마디의 박자 수">
-            <option value="2">2</option><option value="3">3</option><option value="4" selected>4</option>
-            <option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
-          </select>
-        </label>
-        <label class="setting-card" for="division-input">
-          <span>음표</span>
-          <select id="division-input" aria-label="박자 음표 단위">
-            <option value="2">2분음표</option><option value="4" selected>4분음표</option><option value="8">8분음표</option>
-          </select>
-        </label>
-        <label class="setting-card volume-card" for="volume-input">
-          <span>볼륨</span>
-          <input id="volume-input" type="range" min="0" max="100" value="70" aria-label="클릭 볼륨" />
-        </label>
-      </div>
-
-      <div class="accent-panel" aria-labelledby="accent-title">
-        <div class="accent-heading">
-          <div><p id="accent-title" class="setting-title">강박 설정</p><p class="setting-help">강하게 들릴 박자를 선택하세요.</p></div>
-          <span id="accent-summary" class="accent-summary">1박</span>
+        <!-- 곡 모드 전용 마디 진행 뱃지 -->
+        <div id="song-progress-badge" class="song-progress-badge hidden">
+          <span id="badge-section-name">Intro</span>
+          <span id="badge-bar-count">마디 1 / 4</span>
+          <span id="badge-total-bar">(전체 1 / 28)</span>
         </div>
-        <div id="accent-controls" class="accent-controls" role="group" aria-label="강박으로 설정할 박자"></div>
       </div>
     </section>
 
+    <!-- [VIEW 1] 기본 메트로놈 뷰 -->
+    <div id="view-single" class="mode-view">
+      <section class="tempo-panel" aria-label="템포 설정">
+        <p class="section-label">TEMPO</p>
+        <div class="tempo-display">
+          <button class="round-button subtle" id="tempo-down" type="button" aria-label="BPM 1 낮추기">−</button>
+          <label class="tempo-input-wrap">
+            <input id="tempo-input" type="number" inputmode="numeric" min="40" max="240" value="120" aria-label="분당 박자 BPM" />
+            <span>BPM</span>
+          </label>
+          <button class="round-button subtle" id="tempo-up" type="button" aria-label="BPM 1 높이기">+</button>
+        </div>
+        <input id="tempo-slider" class="tempo-slider" type="range" min="40" max="240" value="120" aria-label="BPM 슬라이더" />
+        <div class="range-labels"><span>40</span><span>240</span></div>
+      </section>
+
+      <section class="beat-settings-panel" aria-label="박자 및 강박 설정">
+        <div class="setting-grid">
+          <label class="setting-card" for="beats-input">
+            <span>박자</span>
+            <select id="beats-input" aria-label="한 마디의 박자 수">
+              <option value="2">2</option><option value="3">3</option><option value="4" selected>4</option>
+              <option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
+            </select>
+          </label>
+          <label class="setting-card" for="division-input">
+            <span>음표</span>
+            <select id="division-input" aria-label="박자 음표 단위">
+              <option value="2">2분음표</option><option value="4" selected>4분음표</option><option value="8">8분음표</option>
+            </select>
+          </label>
+          <label class="setting-card volume-card" for="volume-input">
+            <span>볼륨</span>
+            <input id="volume-input" type="range" min="0" max="100" value="70" aria-label="클릭 볼륨" />
+          </label>
+        </div>
+
+        <div class="accent-panel" aria-labelledby="accent-title">
+          <div class="accent-heading">
+            <div><p id="accent-title" class="setting-title">강박 설정</p><p class="setting-help">강하게 들릴 박자를 선택하세요.</p></div>
+            <span id="accent-summary" class="accent-summary">1박</span>
+          </div>
+          <div id="accent-controls" class="accent-controls" role="group" aria-label="강박으로 설정할 박자"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- [VIEW 2] 곡 프리셋 & 마디 시퀀서 뷰 (변속·변박) -->
+    <div id="view-song" class="mode-view hidden">
+      <!-- 곡 프리셋 선택 및 관리 바 -->
+      <section class="song-preset-panel" aria-label="곡 프리셋 관리">
+        <div class="song-preset-header">
+          <p class="section-label">SONG PRESET</p>
+          <div class="song-manage-actions">
+            <button id="song-btn-new" class="mini-button" type="button" title="새 곡 프리셋 추가">+ 새 곡</button>
+            <button id="song-btn-rename" class="mini-button" type="button" title="곡 이름 변경">✏️ 이름</button>
+            <button id="song-btn-duplicate" class="mini-button" type="button" title="곡 복제">📋 복제</button>
+            <button id="song-btn-delete" class="mini-button danger" type="button" title="곡 삭제">🗑️</button>
+          </div>
+        </div>
+        <div class="song-select-wrap">
+          <select id="song-select" class="song-select" aria-label="곡 프리셋 선택"></select>
+        </div>
+      </section>
+
+      <!-- 곡 모니터 & 퀵 네비게이션 바 -->
+      <section class="song-monitor-panel" aria-label="곡 재생 및 마디 제어">
+        <div class="song-monitor-grid">
+          <div class="monitor-card current-section-card">
+            <span class="card-label">현재 구간</span>
+            <strong id="mon-section-name">Intro</strong>
+            <span id="mon-section-meta" class="card-sub">120 BPM · 4/4</span>
+          </div>
+          <div class="monitor-card measure-card">
+            <span class="card-label">구간 마디 진행</span>
+            <strong id="mon-measure-progress">1 / 4</strong>
+            <span id="mon-total-progress" class="card-sub">전체 1 / 28 마디</span>
+          </div>
+        </div>
+        <div class="song-quick-bar">
+          <button id="btn-rewind" class="action-pill-button" type="button" title="곡의 처음 마디로 이동">
+            ⏮ 처음부터
+          </button>
+          <button id="btn-toggle-loop" class="action-pill-button active" type="button" title="전곡 반복 재생 토글">
+            🔁 전곡 반복: ON
+          </button>
+        </div>
+      </section>
+
+      <!-- 마디 구간 목록 (변속·변박 시퀀서) -->
+      <section class="sections-timeline-panel" aria-label="마디 구간 시퀀서">
+        <div class="timeline-header">
+          <div>
+            <span class="section-label">SECTIONS (변속 · 변박 마디)</span>
+            <p class="timeline-help">구간을 클릭하면 해당 마디로 즉시 이동합니다.</p>
+          </div>
+          <span id="sections-count-badge" class="count-badge">5개 구간</span>
+        </div>
+
+        <div id="sections-list" class="sections-list" role="list"></div>
+
+        <button id="btn-add-section" class="add-section-button" type="button">
+          + 마디 구간 추가 (변속 / 변박)
+        </button>
+      </section>
+
+      <!-- 마디 구간 추가/수정 모달/카드 -->
+      <section id="section-editor" class="section-editor-panel hidden" aria-label="구간 세부 설정">
+        <div class="editor-header">
+          <strong id="editor-title">마디 구간 편집</strong>
+          <button id="editor-btn-close" class="editor-close" type="button" aria-label="닫기">×</button>
+        </div>
+        <div class="editor-body">
+          <label class="editor-field">
+            <span>구간 이름 (파트)</span>
+            <input id="ed-name" type="text" placeholder="예: Intro, Verse, Chorus, 후렴" />
+          </label>
+          <div class="editor-row">
+            <label class="editor-field">
+              <span>마디 수</span>
+              <input id="ed-bars" type="number" min="1" max="999" value="4" />
+            </label>
+            <label class="editor-field">
+              <span>BPM (변속)</span>
+              <input id="ed-bpm" type="number" min="40" max="240" value="120" />
+            </label>
+            <label class="editor-field">
+              <span>박자 (변박)</span>
+              <select id="ed-beats">
+                <option value="2">2/4</option><option value="3">3/4</option><option value="4" selected>4/4</option>
+                <option value="5">5/4</option><option value="6">6/8</option><option value="7">7/8</option><option value="8">8/8</option>
+              </select>
+            </label>
+          </div>
+          <div class="editor-field">
+            <span>강박 설정</span>
+            <div id="ed-accent-controls" class="ed-accent-controls"></div>
+          </div>
+          <div class="editor-actions">
+            <button id="ed-btn-cancel" class="button-subtle" type="button">취소</button>
+            <button id="ed-btn-save" class="button-primary" type="button">저장</button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- 하단 공통 제어 컨트롤 (시작/정지, TAP, 소리) -->
     <section class="controls" aria-label="메트로놈 재생 제어">
       <button id="tap-button" class="tap-button" type="button">TAP<span>템포 맞추기</span></button>
       <button id="play-button" class="play-button" type="button" aria-pressed="false">
@@ -79,7 +201,7 @@
       </button>
     </section>
 
-    <p class="keyboard-hint">스페이스바로 시작 또는 정지 · 탭 버튼을 2회 이상 눌러 BPM 설정</p>
+    <p class="keyboard-hint">스페이스바로 시작 또는 정지 · 곡 모드에서는 마디를 누르면 해당 구간으로 즉시 이동합니다</p>
   </main>
   <script src="./app.js"></script>
 </body>
