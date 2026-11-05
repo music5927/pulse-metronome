@@ -12,7 +12,7 @@
   <div id="fullscreen-flash" class="fullscreen-flash" aria-hidden="true"></div>
 
   <main class="app-shell">
-    <!-- 상단 헤더: 좌측 상태 표시, 우측 정사각형 옵션 메뉴 버튼 (어플 이름 제거됨) -->
+    <!-- 상단 헤더: 좌측 상태 표시, 우측 정사각형 옵션 메뉴 버튼 -->
     <header class="app-header">
       <div class="header-left">
         <p id="status" class="status" aria-live="polite">준비됨</p>
@@ -24,7 +24,7 @@
       </div>
     </header>
 
-    <!-- 공통 박자 시각화 영역 (단일 모드 & 곡 모드 공유) -->
+    <!-- 공통 박자 시각화 영역 (단일 모드 & 트랙 메트로놈 공유) -->
     <section class="beat-visual-section" aria-label="현재 박자 및 마디 표시">
       <div class="beat-visual-wrap">
         <div id="beat-light" class="beat-light idle" aria-hidden="true">
@@ -32,7 +32,7 @@
           <span class="beat-total">/ <span id="beat-count">4</span></span>
         </div>
         <p id="beat-caption">다음 박자를 기다리는 중</p>
-        <!-- 곡 모드 전용 마디 진행 뱃지 -->
+        <!-- 트랙 메트로놈 전용 마디 진행 뱃지 -->
         <div id="song-progress-badge" class="song-progress-badge hidden">
           <span id="badge-section-name">Intro</span>
           <span id="badge-bar-count">마디 1 / 4</span>
@@ -100,26 +100,26 @@
       </section>
     </div>
 
-    <!-- [VIEW 2] 곡 프리셋 & 마디 시퀀서 뷰 (변속·변박) -->
-    <div id="view-song" class="mode-view hidden">
+    <!-- [VIEW 2] 트랙 메트로놈 상단 뷰 (프리셋 & 모니터) -->
+    <div id="view-track-top" class="mode-view hidden">
       <!-- 곡 프리셋 선택 및 관리 바 -->
-      <section class="song-preset-panel" aria-label="곡 프리셋 관리">
+      <section class="song-preset-panel" aria-label="트랙 프리셋 관리">
         <div class="song-preset-header">
-          <p class="section-label">SONG PRESET</p>
+          <p class="section-label">TRACK PRESET</p>
           <div class="song-manage-actions">
-            <button id="song-btn-new" class="mini-button" type="button" title="새 곡 프리셋 추가">+ 새 곡</button>
-            <button id="song-btn-rename" class="mini-button" type="button" title="곡 이름 변경">✏️ 이름</button>
-            <button id="song-btn-duplicate" class="mini-button" type="button" title="곡 복제">📋 복제</button>
-            <button id="song-btn-delete" class="mini-button danger" type="button" title="곡 삭제">🗑️</button>
+            <button id="song-btn-new" class="mini-button" type="button" title="새 트랙 프리셋 추가">+ 새 곡</button>
+            <button id="song-btn-rename" class="mini-button" type="button" title="트랙 이름 변경">✏️ 이름</button>
+            <button id="song-btn-duplicate" class="mini-button" type="button" title="트랙 복제">📋 복제</button>
+            <button id="song-btn-delete" class="mini-button danger" type="button" title="트랙 삭제">🗑️</button>
           </div>
         </div>
         <div class="song-select-wrap">
-          <select id="song-select" class="song-select" aria-label="곡 프리셋 선택"></select>
+          <select id="song-select" class="song-select" aria-label="트랙 프리셋 선택"></select>
         </div>
       </section>
 
-      <!-- 곡 모니터 & 퀵 네비게이션 바 -->
-      <section class="song-monitor-panel" aria-label="곡 재생 및 마디 제어">
+      <!-- 트랙 모니터 & 퀵 네비게이션 바 -->
+      <section class="song-monitor-panel" aria-label="트랙 재생 및 마디 제어">
         <div class="song-monitor-grid">
           <div class="monitor-card current-section-card">
             <span class="card-label">현재 구간</span>
@@ -133,7 +133,7 @@
           </div>
         </div>
         <div class="song-quick-bar">
-          <button id="btn-rewind" class="action-pill-button" type="button" title="곡의 처음 마디로 이동">
+          <button id="btn-rewind" class="action-pill-button" type="button" title="트랙 처음 마디로 이동">
             ⏮ 처음부터
           </button>
           <button id="btn-toggle-loop" class="action-pill-button active" type="button" title="전곡 반복 재생 토글">
@@ -141,13 +141,27 @@
           </button>
         </div>
       </section>
+    </div>
 
+    <!-- 하단 공통 제어 컨트롤 (시작/정지, TAP, 소리) - 트랙 모드에서는 section 바로 위에 배치됨 -->
+    <section class="controls" aria-label="메트로놈 재생 제어">
+      <button id="tap-button" class="tap-button" type="button">TAP<span>템포 맞추기</span></button>
+      <button id="play-button" class="play-button" type="button" aria-pressed="false">
+        <span class="play-icon" aria-hidden="true"></span><span id="play-label">시작</span>
+      </button>
+      <button id="mute-button" class="sound-button" type="button" aria-label="소리 켜짐" aria-pressed="false">
+        <span id="sound-icon" aria-hidden="true">🔊</span><span id="sound-label">소리 켜짐</span>
+      </button>
+    </section>
+
+    <!-- [VIEW 3] 트랙 메트로놈 하단 뷰 (시작 버튼 아래로 이동한 Section 항목 및 에디터) -->
+    <div id="view-track-sections" class="mode-view hidden">
       <!-- 마디 구간 목록 (변속·변박 시퀀서) -->
-      <section class="sections-timeline-panel" aria-label="마디 구간 시퀀서">
+      <section class="sections-timeline-panel" aria-label="트랙 구간 시퀀서">
         <div class="timeline-header">
           <div>
             <span class="section-label">SECTIONS (변속 · 변박 마디)</span>
-            <p class="timeline-help">구간을 클릭하면 해당 마디로 즉시 이동합니다.</p>
+            <p class="timeline-help">구간을 누르면 해당 위치로 즉시 이동합니다.</p>
           </div>
           <span id="sections-count-badge" class="count-badge">5개 구간</span>
         </div>
@@ -166,10 +180,23 @@
           <button id="editor-btn-close" class="editor-close" type="button" aria-label="닫기">×</button>
         </div>
         <div class="editor-body">
+          <!-- 6. Section 설정시 제목을 (Ready, Intro, Verse, Pre-Chorus, Chorus, Pre-Bridge, Brigde, Solo, Outro) 중에 선택 -->
           <label class="editor-field">
-            <span>구간 이름 (파트)</span>
-            <input id="ed-name" type="text" placeholder="예: Intro, Verse, Chorus, 후렴" />
+            <span>구간 이름 (파트 선택)</span>
+            <select id="ed-name" aria-label="구간 이름 선택">
+              <option value="Ready">Ready</option>
+              <option value="Intro">Intro</option>
+              <option value="Verse" selected>Verse</option>
+              <option value="Pre-Chorus">Pre-Chorus</option>
+              <option value="Chorus">Chorus</option>
+              <option value="Pre-Bridge">Pre-Bridge</option>
+              <option value="Bridge">Bridge (Brigde)</option>
+              <option value="Solo">Solo</option>
+              <option value="Outro">Outro</option>
+            </select>
           </label>
+
+          <!-- 7. 마디 수, BPM, 박자(2~31), 음표(2,4,8,16,32) -->
           <div class="editor-row">
             <label class="editor-field">
               <span>마디 수</span>
@@ -180,13 +207,36 @@
               <input id="ed-bpm" type="number" min="30" max="400" value="120" />
             </label>
             <label class="editor-field">
-              <span>박자 (변박)</span>
+              <span>박자 (2~31)</span>
               <select id="ed-beats">
-                <option value="2">2/4</option><option value="3">3/4</option><option value="4" selected>4/4</option>
-                <option value="5">5/4</option><option value="6">6/8</option><option value="7">7/8</option><option value="8">8/8</option>
+                <option value="2">2</option><option value="3">3</option><option value="4" selected>4</option>
+                <option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
+                <option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option>
+                <option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option>
+                <option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option>
+                <option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option>
+                <option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option>
+                <option value="29">29</option><option value="30">30</option><option value="31">31</option>
+              </select>
+            </label>
+            <label class="editor-field">
+              <span>음표 단위</span>
+              <select id="ed-division">
+                <option value="2">/ 2</option>
+                <option value="4" selected>/ 4</option>
+                <option value="8">/ 8</option>
+                <option value="16">/ 16</option>
+                <option value="32">/ 32</option>
               </select>
             </label>
           </div>
+
+          <!-- 5. 가이드 보이스 on/off 설정 -->
+          <label class="editor-checkbox-field">
+            <input type="checkbox" id="ed-guide-voice" checked />
+            <span>가이드 보이스 안내 (2마디 전 파트명, 1마디 전 카운트)</span>
+          </label>
+
           <div class="editor-field">
             <span>강박 설정</span>
             <div id="ed-accent-controls" class="ed-accent-controls"></div>
@@ -199,28 +249,17 @@
       </section>
     </div>
 
-    <!-- 하단 공통 제어 컨트롤 (시작/정지, TAP, 소리) -->
-    <section class="controls" aria-label="메트로놈 재생 제어">
-      <button id="tap-button" class="tap-button" type="button">TAP<span>템포 맞추기</span></button>
-      <button id="play-button" class="play-button" type="button" aria-pressed="false">
-        <span class="play-icon" aria-hidden="true"></span><span id="play-label">시작</span>
-      </button>
-      <button id="mute-button" class="sound-button" type="button" aria-label="소리 켜짐" aria-pressed="false">
-        <span id="sound-icon" aria-hidden="true">🔊</span><span id="sound-label">소리 켜짐</span>
-      </button>
-    </section>
-
-    <!-- 모드 전환 탭 (하단 배치 요청 반영) -->
+    <!-- 모드 전환 탭 (1. '트랙 메트로놈' 으로 탭 이름 변경) -->
     <nav class="mode-nav bottom-mode-nav" role="tablist" aria-label="메트로놈 모드 선택">
       <button id="tab-single" class="mode-tab active" role="tab" aria-selected="true" type="button">
         ⏱️ 기본 메트로놈
       </button>
       <button id="tab-song" class="mode-tab" role="tab" aria-selected="false" type="button">
-        🎵 곡 & 마디 시퀀서
+        🎵 트랙 메트로놈
       </button>
     </nav>
 
-    <p class="keyboard-hint">스페이스바로 시작 또는 정지 · 곡 모드에서는 마디를 누르면 해당 구간으로 즉시 이동합니다</p>
+    <p class="keyboard-hint">스페이스바로 시작 또는 정지 · 트랙 메트로놈에서는 구간을 누르면 해당 마디로 이동합니다</p>
   </main>
 
   <!-- [옵션 메뉴 모달] -->
@@ -277,7 +316,7 @@
     <div class="alert-modal-card">
       <span class="alert-icon">✉️</span>
       <p id="log-alert-message" class="alert-message">‘inho95063@gmail.com’ 으로 로그를 보내주세요</p>
-      <p class="alert-sub">최근 1분간의 메트로놈 로그가 클립보드에 복사되었습니다.<br>이메일에 붙여넣기(Ctrl+V / Cmd+V)하여 전송해 주세요.</p>
+      <p class="alert-sub">최근 1분간의 메트로놈 로그가 클립보드에 복사되었습니다.<br>이메일에 붙여넣기하여 전송해 주세요.</p>
       <button id="btn-alert-close" class="button-primary alert-confirm-btn" type="button">확인</button>
     </div>
   </div>
