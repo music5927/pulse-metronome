@@ -202,7 +202,15 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 
 /* [VIEW 3] 트랙 메트로놈 하단 뷰 (시작 버튼 아래로 이동한 Section 항목) */
 .sections-timeline-panel { padding: 2px 16px 6px; }
-.timeline-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 4px; }
+.timeline-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.timeline-header-left { display: flex; align-items: center; gap: 8px; }
+.jump-bar-btn {
+  padding: 3px 8px; border-radius: 6px; font-size: .68rem; font-weight: 800;
+  color: var(--accent-bright); background: rgba(255,192,107,.12);
+  border: 1px solid rgba(255,192,107,.35); cursor: pointer; transition: all .12s ease;
+}
+.jump-bar-btn:hover { background: rgba(255,192,107,.22); border-color: var(--accent-bright); }
+.jump-bar-btn:active { transform: scale(.96); }
 .timeline-help { margin: 1px 0 0; font-size: .62rem; color: var(--muted); }
 .count-badge { padding: 2px 6px; border-radius: 999px; background: var(--surface-subtle); border: 1px solid var(--line); font-size: .64rem; font-weight: 800; color: var(--muted); }
 .sections-list { display: flex; flex-direction: column; gap: 4px; max-height: 155px; overflow-y: auto; margin-bottom: 5px; -webkit-overflow-scrolling: touch; }
@@ -276,10 +284,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   box-shadow: 0 3px 10px rgba(255,128,95,.24);
 }
 
-.keyboard-hint {
-  margin: 0; padding: 5px 12px 8px; color: var(--muted); text-align: center;
-  font-size: .6rem; line-height: 1.35; background: rgba(0,0,0,.15);
-}
+.keyboard-hint { display: none; }
 
 /* [옵션 메뉴 모달] */
 .options-modal {
@@ -350,6 +355,20 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .alert-message { margin: 0 0 6px; font-size: .92rem; font-weight: 850; color: var(--accent-bright); line-height: 1.45; word-break: keep-all; }
 .alert-sub { margin: 0 0 14px; font-size: .7rem; color: var(--muted); line-height: 1.5; }
 .alert-confirm-btn { width: 100%; height: 38px; font-size: .84rem; }
+
+/* [전체 마디 이동 모달] */
+.jump-modal-card { max-width: 310px; }
+.jump-modal-title { margin: 0 0 6px; font-size: 1rem; font-weight: 850; color: var(--ink); }
+.jump-input-wrap { margin: 12px 0 16px; }
+.jump-bar-input {
+  width: 140px; height: 42px; border-radius: 9px; border: 1.5px solid var(--accent);
+  background: #141720; color: var(--accent-bright); font-size: 1.35rem; font-weight: 850;
+  text-align: center;
+}
+.modal-btn-row { display: flex; gap: 8px; justify-content: center; }
+.modal-btn-row button { flex: 1; height: 38px; font-size: .84rem; font-weight: 800; border-radius: 8px; }
+.modal-cancel-btn { background: var(--surface-subtle); color: var(--muted); border: 1px solid var(--line); }
+.modal-cancel-btn:hover { background: var(--surface-hover); color: var(--ink); }
 
 @media (max-width: 420px) {
   .app-header, .tempo-panel, .beat-settings-panel, .song-preset-panel, .song-monitor-panel, .sections-timeline-panel, .controls { padding-left: 10px; padding-right: 10px; }

@@ -48,11 +48,18 @@
     voiceVolumeDisplay: $('voice-volume-display'),
     // 로그 제출 안내 팝업
     logAlertModal: $('log-alert-modal'), btnAlertClose: $('btn-alert-close'),
-    logAlertMessage: $('log-alert-message')
+    logAlertMessage: $('log-alert-message'),
+    // 전체 마디 점프 모달
+    btnJumpBar: $('btn-jump-bar'),
+    jumpBarModal: $('jump-bar-modal'),
+    jumpBarHelp: $('jump-bar-help'),
+    jumpBarInput: $('jump-bar-input'),
+    btnJumpCancel: $('btn-jump-cancel'),
+    btnJumpConfirm: $('btn-jump-confirm')
   };
 
-  const SETTINGS_KEY = 'pulse-metronome-settings-v8';
-  const SONGS_KEY = 'pulse-metronome-songs-v8';
+  const SETTINGS_KEY = 'pulse-metronome-settings-v9';
+  const SONGS_KEY = 'pulse-metronome-songs-v9';
   const SCHEDULE_AHEAD_SECONDS = 0.12;
   const LOOKAHEAD_MS = 25;
   const SILENT_WAV = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQQAAAAA';
@@ -61,6 +68,7 @@
   try {
     localStorage.removeItem('pulse-metronome-songs-v6');
     localStorage.removeItem('pulse-metronome-songs-v7');
+    localStorage.removeItem('pulse-metronome-songs-v8');
     localStorage.removeItem('pulse-metronome-songs');
   } catch (_) {}
 
@@ -85,66 +93,578 @@
 
   // 6. Section 표준 제목 리스트: Ready, Intro, Verse, Pre-Chorus, Chorus, Pre-Bridge, Brigde, Solo, Outro
   const ALLOWED_SECTION_TITLES = [
-    'Ready', 'Intro', 'Verse', 'Pre-Chorus', 'Chorus', 'Pre-Bridge', 'Bridge', 'Solo', 'Outro'
+    'Ready', 'Intro', 'Verse', 'Pre-Chorus', 'Chorus', 'Interlude', 'Pre-Bridge', 'Bridge', 'Solo', 'Outro'
   ];
 
   // 기본 트랙 메트로놈 프리셋 (Mrs. GREEN APPLE 정밀 분석 기반 샘플, Ready 4마디 시작)
   const DEFAULT_SONGS = [
-    {
-      id: 'mga-a-posteriori',
-      name: 'Mrs. GREEN APPLE - A Posteriori',
-      loop: true,
-      sections: [
-        // 곡 분석: 기본 5/4, 모티프에서는 3/4·6/8·1/4(또는 2/4)로 전환. BPM은 4분음표=100 기준.
-        { id: 'ap-1', name: 'Ready', bars: 4, bpm: 200, beats: 6, division: 8, guideVoice: true, accentBeats: [0, 3] },
-        { id: 'ap-2', name: 'Intro', bars: 12, bpm: 200, beats: 6, division: 8, guideVoice: true, accentBeats: [0, 3] },
-        { id: 'ap-3', name: 'Intro', bars: 1, bpm: 100, beats: 1, division: 4, guideVoice: true, accentBeats: [0] },
-        { id: 'ap-4', name: 'Verse', bars: 6, bpm: 100, beats: 5, division: 4, guideVoice: true, accentBeats: [0, 3] },
-        { id: 'ap-5', name: 'Pre-Chorus', bars: 2, bpm: 100, beats: 3, division: 4, guideVoice: true, accentBeats: [0] },
-        { id: 'ap-6', name: 'Pre-Chorus', bars: 1, bpm: 200, beats: 6, division: 8, guideVoice: true, accentBeats: [0, 3] },
-        { id: 'ap-7', name: 'Pre-Chorus', bars: 1, bpm: 100, beats: 2, division: 4, guideVoice: true, accentBeats: [0] },
-        { id: 'ap-8', name: 'Verse', bars: 10, bpm: 100, beats: 5, division: 4, guideVoice: true, accentBeats: [0, 3] },
-        { id: 'ap-9', name: 'Chorus', bars: 6, bpm: 100, beats: 5, division: 4, guideVoice: true, accentBeats: [0, 3] },
-        { id: 'ap-10', name: 'Chorus', bars: 2, bpm: 100, beats: 3, division: 4, guideVoice: true, accentBeats: [0] },
-        { id: 'ap-11', name: 'Chorus', bars: 1, bpm: 200, beats: 6, division: 8, guideVoice: true, accentBeats: [0, 3] },
-        { id: 'ap-12', name: 'Chorus', bars: 1, bpm: 100, beats: 1, division: 4, guideVoice: true, accentBeats: [0] },
-        { id: 'ap-13', name: 'Solo', bars: 8, bpm: 100, beats: 5, division: 4, guideVoice: true, accentBeats: [0, 3] },
-        { id: 'ap-14', name: 'Verse', bars: 8, bpm: 100, beats: 5, division: 4, guideVoice: true, accentBeats: [0, 3] },
-        { id: 'ap-15', name: 'Chorus', bars: 6, bpm: 100, beats: 5, division: 4, guideVoice: true, accentBeats: [0, 3] },
-        { id: 'ap-16', name: 'Bridge', bars: 8, bpm: 100, beats: 3, division: 4, guideVoice: true, accentBeats: [0] },
-        { id: 'ap-17', name: 'Bridge', bars: 1, bpm: 100, beats: 5, division: 4, guideVoice: true, accentBeats: [0, 3] },
-        { id: 'ap-18', name: 'Chorus', bars: 12, bpm: 100, beats: 5, division: 4, guideVoice: true, accentBeats: [0, 3] },
-        { id: 'ap-19', name: 'Chorus', bars: 2, bpm: 100, beats: 3, division: 4, guideVoice: true, accentBeats: [0] },
-        { id: 'ap-20', name: 'Chorus', bars: 1, bpm: 200, beats: 6, division: 8, guideVoice: true, accentBeats: [0, 3] },
-        { id: 'ap-21', name: 'Chorus', bars: 1, bpm: 100, beats: 1, division: 4, guideVoice: true, accentBeats: [0] },
-        { id: 'ap-22', name: 'Outro', bars: 5, bpm: 100, beats: 5, division: 4, guideVoice: true, accentBeats: [0, 3] },
-        { id: 'ap-23', name: 'Outro', bars: 1, bpm: 100, beats: 2, division: 4, guideVoice: true, accentBeats: [0] },
-        { id: 'ap-24', name: 'Outro', bars: 2, bpm: 100, beats: 3, division: 4, guideVoice: true, accentBeats: [0] },
-        { id: 'ap-25', name: 'Outro', bars: 1, bpm: 100, beats: 6, division: 4, guideVoice: true, accentBeats: [0, 3] },
-        { id: 'ap-26', name: 'Outro', bars: 1, bpm: 100, beats: 2, division: 4, guideVoice: true, accentBeats: [0] }
-      ]
-    },
-    {
-      id: 'mga-start',
-      name: 'Mrs. GREEN APPLE - StaRt',
-      loop: true,
-      sections: [
-        { id: 'st-1', name: 'Ready', bars: 4, bpm: 190, beats: 4, division: 4, guideVoice: true, accentBeats: [0] },
-        { id: 'st-2', name: 'Intro', bars: 14, bpm: 190, beats: 4, division: 4, guideVoice: true, accentBeats: [0] },
-        { id: 'st-3', name: 'Verse', bars: 8, bpm: 190, beats: 4, division: 4, guideVoice: true, accentBeats: [0] },
-        { id: 'st-4', name: 'Pre-Chorus', bars: 8, bpm: 190, beats: 4, division: 4, guideVoice: true, accentBeats: [0] },
-        { id: 'st-5', name: 'Chorus', bars: 16, bpm: 190, beats: 4, division: 4, guideVoice: true, accentBeats: [0, 2] },
-        { id: 'st-6', name: 'Solo', bars: 8, bpm: 190, beats: 4, division: 4, guideVoice: true, accentBeats: [0] },
-        { id: 'st-7', name: 'Verse', bars: 8, bpm: 190, beats: 4, division: 4, guideVoice: true, accentBeats: [0] },
-        { id: 'st-8', name: 'Pre-Chorus', bars: 8, bpm: 190, beats: 4, division: 4, guideVoice: true, accentBeats: [0] },
-        { id: 'st-9', name: 'Chorus', bars: 16, bpm: 190, beats: 4, division: 4, guideVoice: true, accentBeats: [0, 2] },
-        { id: 'st-10', name: 'Bridge', bars: 16, bpm: 190, beats: 4, division: 4, guideVoice: true, accentBeats: [0] },
-        { id: 'st-11', name: 'Solo', bars: 16, bpm: 190, beats: 4, division: 4, guideVoice: true, accentBeats: [0] },
-        { id: 'st-12', name: 'Chorus', bars: 16, bpm: 190, beats: 4, division: 4, guideVoice: true, accentBeats: [0, 2] },
-        { id: 'st-13', name: 'Outro', bars: 18, bpm: 190, beats: 4, division: 4, guideVoice: true, accentBeats: [0] }
-      ]
-    }
-  ];
+  {
+    "id": "mga-a-posteriori",
+    "name": "Mrs Green Apple - A Posteriori",
+    "loop": true,
+    "sections": [
+      {
+        "id": "ap-1",
+        "name": "Ready",
+        "bars": 4,
+        "bpm": 192,
+        "beats": 5,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "ap-2",
+        "name": "Intro",
+        "bars": 14,
+        "bpm": 192,
+        "beats": 5,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "ap-3",
+        "name": "Intro",
+        "bars": 2,
+        "bpm": 192,
+        "beats": 3,
+        "division": 4,
+        "guideVoice": false,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "ap-4",
+        "name": "Intro",
+        "bars": 1,
+        "bpm": 192,
+        "beats": 5,
+        "division": 4,
+        "guideVoice": false,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "ap-5",
+        "name": "Verse",
+        "bars": 10,
+        "bpm": 192,
+        "beats": 5,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "ap-6",
+        "name": "Verse",
+        "bars": 1,
+        "bpm": 192,
+        "beats": 2,
+        "division": 4,
+        "guideVoice": false,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "ap-7",
+        "name": "Verse",
+        "bars": 2,
+        "bpm": 192,
+        "beats": 5,
+        "division": 4,
+        "guideVoice": false,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "ap-8",
+        "name": "Chorus",
+        "bars": 6,
+        "bpm": 192,
+        "beats": 5,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "ap-9",
+        "name": "Chorus",
+        "bars": 2,
+        "bpm": 192,
+        "beats": 3,
+        "division": 4,
+        "guideVoice": false,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "ap-10",
+        "name": "Chorus",
+        "bars": 1,
+        "bpm": 192,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": false,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "ap-11",
+        "name": "Interlude",
+        "bars": 6,
+        "bpm": 192,
+        "beats": 5,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "ap-12",
+        "name": "Interlude",
+        "bars": 2,
+        "bpm": 192,
+        "beats": 3,
+        "division": 4,
+        "guideVoice": false,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "ap-13",
+        "name": "Interlude",
+        "bars": 1,
+        "bpm": 192,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": false,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "ap-14",
+        "name": "Verse",
+        "bars": 12,
+        "bpm": 192,
+        "beats": 5,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "ap-15",
+        "name": "Chorus",
+        "bars": 6,
+        "bpm": 192,
+        "beats": 5,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "ap-16",
+        "name": "Chorus",
+        "bars": 2,
+        "bpm": 192,
+        "beats": 3,
+        "division": 4,
+        "guideVoice": false,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "ap-17",
+        "name": "Chorus",
+        "bars": 1,
+        "bpm": 192,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": false,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "ap-18",
+        "name": "Solo",
+        "bars": 8,
+        "bpm": 192,
+        "beats": 5,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "ap-19",
+        "name": "Bridge",
+        "bars": 19,
+        "bpm": 192,
+        "beats": 3,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "ap-20",
+        "name": "Bridge",
+        "bars": 1,
+        "bpm": 192,
+        "beats": 5,
+        "division": 4,
+        "guideVoice": false,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "ap-21",
+        "name": "Bridge",
+        "bars": 3,
+        "bpm": 192,
+        "beats": 3,
+        "division": 4,
+        "guideVoice": false,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "ap-22",
+        "name": "Bridge",
+        "bars": 1,
+        "bpm": 192,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": false,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "ap-23",
+        "name": "Chorus",
+        "bars": 6,
+        "bpm": 192,
+        "beats": 5,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "ap-24",
+        "name": "Chorus",
+        "bars": 2,
+        "bpm": 192,
+        "beats": 3,
+        "division": 4,
+        "guideVoice": false,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "ap-25",
+        "name": "Chorus",
+        "bars": 1,
+        "bpm": 192,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": false,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "ap-26",
+        "name": "Chorus",
+        "bars": 6,
+        "bpm": 192,
+        "beats": 5,
+        "division": 4,
+        "guideVoice": false,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "ap-27",
+        "name": "Chorus",
+        "bars": 2,
+        "bpm": 192,
+        "beats": 3,
+        "division": 4,
+        "guideVoice": false,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "ap-28",
+        "name": "Chorus",
+        "bars": 1,
+        "bpm": 192,
+        "beats": 5,
+        "division": 4,
+        "guideVoice": false,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "ap-29",
+        "name": "Chorus",
+        "bars": 3,
+        "bpm": 192,
+        "beats": 3,
+        "division": 4,
+        "guideVoice": false,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "ap-30",
+        "name": "Outro",
+        "bars": 6,
+        "bpm": 192,
+        "beats": 5,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "ap-31",
+        "name": "Outro",
+        "bars": 3,
+        "bpm": 192,
+        "beats": 3,
+        "division": 4,
+        "guideVoice": false,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "ap-32",
+        "name": "Outro",
+        "bars": 8,
+        "bpm": 192,
+        "beats": 5,
+        "division": 4,
+        "guideVoice": false,
+        "accentBeats": [
+          0
+        ]
+      }
+    ]
+  },
+  {
+    "id": "mga-start",
+    "name": "Mrs Green Apple - StaRt",
+    "loop": true,
+    "sections": [
+      {
+        "id": "st-1",
+        "name": "Intro",
+        "bars": 8,
+        "bpm": 190,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "st-2",
+        "name": "Verse",
+        "bars": 8,
+        "bpm": 190,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "st-3",
+        "name": "Pre-Chorus",
+        "bars": 8,
+        "bpm": 190,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "st-4",
+        "name": "Chorus",
+        "bars": 16,
+        "bpm": 190,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "st-5",
+        "name": "Interlude",
+        "bars": 8,
+        "bpm": 190,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "st-6",
+        "name": "Verse",
+        "bars": 8,
+        "bpm": 190,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "st-7",
+        "name": "Pre-Chorus",
+        "bars": 8,
+        "bpm": 190,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "st-8",
+        "name": "Chorus",
+        "bars": 16,
+        "bpm": 190,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "st-9",
+        "name": "Interlude",
+        "bars": 8,
+        "bpm": 190,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "st-10",
+        "name": "Solo",
+        "bars": 8,
+        "bpm": 190,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "st-11",
+        "name": "Bridge",
+        "bars": 16,
+        "bpm": 190,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "st-12",
+        "name": "Interlude",
+        "bars": 8,
+        "bpm": 190,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "st-13",
+        "name": "Chorus",
+        "bars": 17,
+        "bpm": 190,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      },
+      {
+        "id": "st-14",
+        "name": "Outro",
+        "bars": 21,
+        "bpm": 190,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [
+          0
+        ]
+      }
+    ]
+  }
+];
 
   // 로컬 스토리지 로드
   const savedSettings = (() => { try { return JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}; } catch { return {}; } })();
@@ -158,7 +678,7 @@
   })();
 
   const state = {
-    mode: savedSettings.mode === 'song' ? 'song' : 'single',
+    mode: 'single', // 시작페이지는 항상 '기본 메트로놈' 탭으로 설정
     // 1. BPM 범위 30~400
     bpm: clamp(Number(savedSettings.bpm) || 120, 30, 400),
     // 2. 박자 범위 2~31
@@ -519,7 +1039,7 @@
   // 박자 시각 효과 렌더링 (전체화면 | 부분화면 | 끄기)
   function renderBeat(beat, isAccent, captionOverride = null) {
     elements.beatNumber.textContent = String(beat + 1);
-    elements.beatCaption.textContent = captionOverride || (isAccent ? `${beat + 1}박 · 강박` : `${beat + 1}번째 박`);
+    if (elements.beatCaption) elements.beatCaption.textContent = captionOverride || (isAccent ? `${beat + 1}박 · 강박` : `${beat + 1}번째 박`);
 
     const visualMode = state.options.accentVisual; // 'fullscreen' | 'partial' | 'off'
 
@@ -581,11 +1101,28 @@
         const nextSecIdx = (secIdx + 1) % song.sections.length;
         const nextSec = hasNextTransition ? song.sections[nextSecIdx] : null;
 
-        // 3. 가이드 보이스: section이 바뀌기 2마디 전 섹션명, 1마디 전 카운트
-        const barsRemaining = curSec.bars - measure;
-        const isGuideEnabled = Boolean(nextSec && (nextSec.guideVoice !== false));
-        const isTwoBarsBeforeName = isGuideEnabled && (barsRemaining === 2) && (beat === 0);
-        const isOneBarBeforeCount = isGuideEnabled && (barsRemaining === 1);
+        // 3. 가이드 보이스: 다음 보이스 가이드 활성 section이 시작되기 정확히 2마디 전 섹션명, 1마디 전 카운트
+        function findUpcomingGuideTarget() {
+          let barsUntil = curSec.bars - measure;
+          let idx = (secIdx + 1) % song.sections.length;
+          let visited = 0;
+          while (visited < song.sections.length) {
+            if (!song.loop && idx < secIdx) break;
+            const target = song.sections[idx];
+            if (target && target.guideVoice !== false) {
+              return { target, barsUntil };
+            }
+            barsUntil += Number(target.bars || 1);
+            if (barsUntil > 2) break;
+            idx = (idx + 1) % song.sections.length;
+            visited += 1;
+          }
+          return { target: null, barsUntil: 999 };
+        }
+
+        const { target: nextGuideSec, barsUntil: guideBarsUntil } = findUpcomingGuideTarget();
+        const isTwoBarsBeforeName = Boolean(nextGuideSec) && (guideBarsUntil === 2) && (beat === 0);
+        const isOneBarBeforeCount = Boolean(nextGuideSec) && (guideBarsUntil === 1);
         const isFirstBeatOfSong = (secIdx === 0 && measure === 0 && beat === 0);
 
         // 오디오 스케줄링 (클릭음 및 가이드 보이스를 동일 Web Audio 컨텍스트에서 정밀 재생)
@@ -593,8 +1130,8 @@
 
         if (isFirstBeatOfSong && curSec.guideVoice !== false && curSec.name.toLowerCase() === 'ready') {
           VoiceGuide.speakSectionName(curSec.name, noteTime);
-        } else if (isTwoBarsBeforeName && nextSec) {
-          VoiceGuide.speakSectionName(nextSec.name, noteTime);
+        } else if (isTwoBarsBeforeName && nextGuideSec) {
+          VoiceGuide.speakSectionName(nextGuideSec.name, noteTime);
         } else if (isOneBarBeforeCount) {
           VoiceGuide.speakCount(beat + 1, noteTime, curSec.bpm);
         }
@@ -606,8 +1143,8 @@
             updateSongMonitorUI();
             renderSectionsTimeline();
 
-            if (isTwoBarsBeforeName && nextSec) {
-              addLog('GUIDE_VOICE_SECTION', { target: nextSec.name, bar: measure + 1 });
+            if (isTwoBarsBeforeName && nextGuideSec) {
+              addLog('GUIDE_VOICE_SECTION', { target: nextGuideSec.name, bar: measure + 1 });
             } else if (isOneBarBeforeCount) {
               addLog('GUIDE_VOICE_COUNT', { count: beat + 1, bar: measure + 1 });
             }
@@ -689,7 +1226,7 @@
     elements.playLabel.textContent = '시작';
     elements.beatLight.classList.remove('active', 'accent');
     elements.beatLight.classList.add('idle');
-    elements.beatCaption.textContent = '다음 박자를 기다리는 중';
+    if (elements.beatCaption) elements.beatCaption.textContent = '';
     setStatus('일시 정지');
     addLog('PLAY_STOP', { mode: state.mode });
   }
@@ -718,6 +1255,65 @@
     renderSectionsTimeline();
     setStatus(`${song.sections[idx].name} 구간으로 이동`);
     addLog('TRACK_SEEK', { secIdx: idx, name: song.sections[idx].name });
+  }
+
+  // 3, 4. '전체 마디' 버튼 선택 시 희망 마디로 이동
+  function seekToTotalMeasure(targetBarNum) {
+    const song = getActiveSong();
+    const total = getTotalSongBars(song);
+    const target = clamp(Math.round(Number(targetBarNum) || 1), 1, total);
+
+    let accumulated = 0;
+    for (let i = 0; i < song.sections.length; i += 1) {
+      const secBars = Number(song.sections[i].bars || 1);
+      if (target <= accumulated + secBars) {
+        state.currentSectionIndex = i;
+        state.currentMeasure = target - accumulated - 1; // 0-indexed
+        state.currentBeat = 0;
+        if (state.playing && state.audioContext) {
+          state.nextNoteTime = state.audioContext.currentTime + 0.05;
+        }
+        updateSongMonitorUI();
+        renderSectionsTimeline();
+        setStatus(`전체 ${target}마디 (${song.sections[i].name} ${state.currentMeasure + 1}/${secBars})로 이동`);
+        addLog('TRACK_SEEK_TOTAL_BAR', { targetBar: target, secIdx: i, secMeasure: state.currentMeasure });
+
+        const activeEl = elements.sectionsList.querySelector(`.section-item[data-index="${i}"]`);
+        activeEl?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        return;
+      }
+      accumulated += secBars;
+    }
+  }
+
+  function openJumpBarModal() {
+    const song = getActiveSong();
+    const total = getTotalSongBars(song);
+    const curOverall = getCalculatedTotalBar(song, state.currentSectionIndex, state.currentMeasure);
+    if (elements.jumpBarHelp) {
+      elements.jumpBarHelp.textContent = `이동할 마디 번호를 입력하세요 (1 ~ ${total})`;
+    }
+    if (elements.jumpBarInput) {
+      elements.jumpBarInput.min = '1';
+      elements.jumpBarInput.max = String(total);
+      elements.jumpBarInput.value = String(curOverall);
+    }
+    elements.jumpBarModal?.classList.remove('hidden');
+    elements.jumpBarInput?.focus();
+    elements.jumpBarInput?.select();
+    addLog('JUMP_BAR_MODAL_OPEN', { currentBar: curOverall, totalBars: total });
+  }
+
+  function closeJumpBarModal() {
+    elements.jumpBarModal?.classList.add('hidden');
+  }
+
+  function confirmJumpBar() {
+    const val = Number(elements.jumpBarInput?.value);
+    if (val && !isNaN(val)) {
+      seekToTotalMeasure(val);
+    }
+    closeJumpBarModal();
   }
 
   function setSingleTempo(raw) {
@@ -1115,6 +1711,18 @@
     addLog('TRACK_DELETE', { name: delName });
   });
 
+  // 전체 마디 점프 이벤트 바인딩
+  elements.btnJumpBar?.addEventListener('click', openJumpBarModal);
+  elements.btnJumpCancel?.addEventListener('click', closeJumpBarModal);
+  elements.btnJumpConfirm?.addEventListener('click', confirmJumpBar);
+  elements.jumpBarInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') confirmJumpBar();
+    if (e.key === 'Escape') closeJumpBarModal();
+  });
+  elements.jumpBarModal?.addEventListener('click', (e) => {
+    if (e.target === elements.jumpBarModal) closeJumpBarModal();
+  });
+
   elements.btnRewind.addEventListener('click', rewindSong);
   elements.btnToggleLoop.addEventListener('click', () => {
     const song = getActiveSong();
@@ -1248,7 +1856,7 @@
       voiceVolume: state.options.voiceVolume
     }),
     VoiceGuide,
-    start, stop, togglePlayback, setSingleTempo, seekToSection, rewindSong,
+    start, stop, togglePlayback, setSingleTempo, seekToSection, seekToTotalMeasure, openJumpBarModal, closeJumpBarModal, rewindSong,
     openOptionsModal, closeOptionsModal, submitRecentLogs, addLog
   };
 })();

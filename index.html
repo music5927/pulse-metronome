@@ -31,7 +31,6 @@
           <span id="beat-number">1</span>
           <span class="beat-total">/ <span id="beat-count">4</span></span>
         </div>
-        <p id="beat-caption">다음 박자를 기다리는 중</p>
         <!-- 트랙 메트로놈 전용 마디 진행 뱃지 -->
         <div id="song-progress-badge" class="song-progress-badge hidden">
           <span id="badge-section-name">Intro</span>
@@ -159,9 +158,9 @@
       <!-- 마디 구간 목록 (변속·변박 시퀀서) -->
       <section class="sections-timeline-panel" aria-label="트랙 구간 시퀀서">
         <div class="timeline-header">
-          <div>
+          <div class="timeline-header-left">
             <span class="section-label">SECTIONS (변속 · 변박 마디)</span>
-            <p class="timeline-help">구간을 누르면 해당 위치로 즉시 이동합니다.</p>
+            <button id="btn-jump-bar" class="sub-btn jump-bar-btn" type="button" title="원하는 전체 마디로 바로 이동">전체 마디</button>
           </div>
           <span id="sections-count-badge" class="count-badge">5개 구간</span>
         </div>
@@ -180,7 +179,7 @@
           <button id="editor-btn-close" class="editor-close" type="button" aria-label="닫기">×</button>
         </div>
         <div class="editor-body">
-          <!-- 6. Section 설정시 제목을 (Ready, Intro, Verse, Pre-Chorus, Chorus, Pre-Bridge, Brigde, Solo, Outro) 중에 선택 -->
+          <!-- 6. Section 설정시 제목을 (Ready, Intro, Verse, Pre-Chorus, Chorus, Interlude, Pre-Bridge, Bridge, Solo, Outro) 중에 선택 -->
           <label class="editor-field">
             <span>구간 이름 (파트 선택)</span>
             <select id="ed-name" aria-label="구간 이름 선택">
@@ -189,8 +188,9 @@
               <option value="Verse" selected>Verse</option>
               <option value="Pre-Chorus">Pre-Chorus</option>
               <option value="Chorus">Chorus</option>
+              <option value="Interlude">Interlude</option>
               <option value="Pre-Bridge">Pre-Bridge</option>
-              <option value="Bridge">Bridge (Brigde)</option>
+              <option value="Bridge">Bridge</option>
               <option value="Solo">Solo</option>
               <option value="Outro">Outro</option>
             </select>
@@ -258,8 +258,6 @@
         🎵 트랙 메트로놈
       </button>
     </nav>
-
-    <p class="keyboard-hint">스페이스바로 시작 또는 정지 · 트랙 메트로놈에서는 구간을 누르면 해당 마디로 이동합니다</p>
   </main>
 
   <!-- [옵션 메뉴 모달] -->
@@ -332,6 +330,22 @@
       <p id="log-alert-message" class="alert-message">‘inho95063@gmail.com’ 으로 로그를 보내주세요</p>
       <p class="alert-sub">최근 1분간의 메트로놈 로그가 클립보드에 복사되었습니다.<br>이메일에 붙여넣기하여 전송해 주세요.</p>
       <button id="btn-alert-close" class="button-primary alert-confirm-btn" type="button">확인</button>
+    </div>
+  </div>
+
+  <!-- [전체 마디 이동 모달] -->
+  <div id="jump-bar-modal" class="alert-modal hidden" role="dialog" aria-modal="true" aria-labelledby="jump-modal-title">
+    <div class="alert-modal-card jump-modal-card">
+      <span class="alert-icon">📍</span>
+      <h3 id="jump-modal-title" class="jump-modal-title">전체 마디 이동</h3>
+      <p id="jump-bar-help" class="alert-sub">이동할 마디 번호를 입력하세요</p>
+      <div class="jump-input-wrap">
+        <input id="jump-bar-input" type="number" min="1" max="999" class="jump-bar-input" placeholder="마디 번호" inputmode="numeric" />
+      </div>
+      <div class="modal-btn-row">
+        <button id="btn-jump-cancel" class="sub-btn modal-cancel-btn" type="button">취소</button>
+        <button id="btn-jump-confirm" class="button-primary modal-confirm-btn" type="button">이동</button>
+      </div>
     </div>
   </div>
 
