@@ -4,28 +4,25 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#10131a" />
-  <title>Pulse — 메트로놈</title>
+  <title>메트로놈</title>
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <main class="app-shell" aria-labelledby="app-title">
-    <header class="app-header">
-      <div>
-        <p class="eyebrow">PRECISION PRACTICE TOOL</p>
-        <h1 id="app-title">Pulse</h1>
-      </div>
-      <p id="status" class="status" aria-live="polite">준비됨</p>
-    </header>
+  <!-- 전체화면 악센트 플래시 오버레이 -->
+  <div id="fullscreen-flash" class="fullscreen-flash" aria-hidden="true"></div>
 
-    <!-- 모드 전환 탭 (기본 메트로놈 vs 곡 & 마디 시퀀서) -->
-    <nav class="mode-nav" role="tablist" aria-label="메트로놈 모드 선택">
-      <button id="tab-single" class="mode-tab active" role="tab" aria-selected="true" type="button">
-        ⏱️ 기본 메트로놈
-      </button>
-      <button id="tab-song" class="mode-tab" role="tab" aria-selected="false" type="button">
-        🎵 곡 & 마디 시퀀서
-      </button>
-    </nav>
+  <main class="app-shell">
+    <!-- 상단 헤더: 좌측 상태 표시, 우측 정사각형 옵션 메뉴 버튼 (어플 이름 제거됨) -->
+    <header class="app-header">
+      <div class="header-left">
+        <p id="status" class="status" aria-live="polite">준비됨</p>
+      </div>
+      <div class="header-right">
+        <button id="btn-open-options" class="square-opt-button" type="button" aria-label="옵션 메뉴" title="설정 & 옵션">
+          ⚙️
+        </button>
+      </div>
+    </header>
 
     <!-- 공통 박자 시각화 영역 (단일 모드 & 곡 모드 공유) -->
     <section class="beat-visual-section" aria-label="현재 박자 및 마디 표시">
@@ -44,35 +41,47 @@
       </div>
     </section>
 
-    <!-- [VIEW 1] 기본 메트로놈 뷰 -->
+    <!-- [VIEW 1] 기본 메트로놈 뷰 (한 화면 최적화) -->
     <div id="view-single" class="mode-view">
       <section class="tempo-panel" aria-label="템포 설정">
         <p class="section-label">TEMPO</p>
         <div class="tempo-display">
           <button class="round-button subtle" id="tempo-down" type="button" aria-label="BPM 1 낮추기">−</button>
           <label class="tempo-input-wrap">
-            <input id="tempo-input" type="number" inputmode="numeric" min="40" max="240" value="120" aria-label="분당 박자 BPM" />
+            <input id="tempo-input" type="number" inputmode="numeric" min="30" max="400" value="120" aria-label="분당 박자 BPM" />
             <span>BPM</span>
           </label>
           <button class="round-button subtle" id="tempo-up" type="button" aria-label="BPM 1 높이기">+</button>
         </div>
-        <input id="tempo-slider" class="tempo-slider" type="range" min="40" max="240" value="120" aria-label="BPM 슬라이더" />
-        <div class="range-labels"><span>40</span><span>240</span></div>
+        <input id="tempo-slider" class="tempo-slider" type="range" min="30" max="400" value="120" aria-label="BPM 슬라이더" />
+        <div class="range-labels"><span>30</span><span>400</span></div>
       </section>
 
       <section class="beat-settings-panel" aria-label="박자 및 강박 설정">
         <div class="setting-grid">
+          <!-- 박자 범위 2 ~ 31 -->
           <label class="setting-card" for="beats-input">
             <span>박자</span>
             <select id="beats-input" aria-label="한 마디의 박자 수">
               <option value="2">2</option><option value="3">3</option><option value="4" selected>4</option>
               <option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
+              <option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option>
+              <option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option>
+              <option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option>
+              <option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option>
+              <option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option>
+              <option value="29">29</option><option value="30">30</option><option value="31">31</option>
             </select>
           </label>
+          <!-- 음표 2, 4, 8, 16, 32 -->
           <label class="setting-card" for="division-input">
             <span>음표</span>
             <select id="division-input" aria-label="박자 음표 단위">
-              <option value="2">2분음표</option><option value="4" selected>4분음표</option><option value="8">8분음표</option>
+              <option value="2">2분음표</option>
+              <option value="4" selected>4분음표</option>
+              <option value="8">8분음표</option>
+              <option value="16">16분음표</option>
+              <option value="32">32분음표</option>
             </select>
           </label>
           <label class="setting-card volume-card" for="volume-input">
@@ -83,7 +92,7 @@
 
         <div class="accent-panel" aria-labelledby="accent-title">
           <div class="accent-heading">
-            <div><p id="accent-title" class="setting-title">강박 설정</p><p class="setting-help">강하게 들릴 박자를 선택하세요.</p></div>
+            <div><p id="accent-title" class="setting-title">강박 설정</p><p class="setting-help">원하는 박자를 선택하세요.</p></div>
             <span id="accent-summary" class="accent-summary">1박</span>
           </div>
           <div id="accent-controls" class="accent-controls" role="group" aria-label="강박으로 설정할 박자"></div>
@@ -168,7 +177,7 @@
             </label>
             <label class="editor-field">
               <span>BPM (변속)</span>
-              <input id="ed-bpm" type="number" min="40" max="240" value="120" />
+              <input id="ed-bpm" type="number" min="30" max="400" value="120" />
             </label>
             <label class="editor-field">
               <span>박자 (변박)</span>
@@ -201,8 +210,78 @@
       </button>
     </section>
 
+    <!-- 모드 전환 탭 (하단 배치 요청 반영) -->
+    <nav class="mode-nav bottom-mode-nav" role="tablist" aria-label="메트로놈 모드 선택">
+      <button id="tab-single" class="mode-tab active" role="tab" aria-selected="true" type="button">
+        ⏱️ 기본 메트로놈
+      </button>
+      <button id="tab-song" class="mode-tab" role="tab" aria-selected="false" type="button">
+        🎵 곡 & 마디 시퀀서
+      </button>
+    </nav>
+
     <p class="keyboard-hint">스페이스바로 시작 또는 정지 · 곡 모드에서는 마디를 누르면 해당 구간으로 즉시 이동합니다</p>
   </main>
+
+  <!-- [옵션 메뉴 모달] -->
+  <div id="options-modal" class="options-modal hidden" role="dialog" aria-modal="true" aria-labelledby="opt-modal-title">
+    <div id="options-backdrop" class="options-modal-backdrop"></div>
+    <div class="options-modal-card">
+      <div class="options-modal-header">
+        <h2 id="opt-modal-title" class="options-modal-title">설정 & 옵션</h2>
+        <button id="btn-close-options" class="square-close-btn" type="button" aria-label="옵션 닫기">×</button>
+      </div>
+      <div class="options-modal-body">
+        <!-- 악센트 표시방법 설정 -->
+        <div class="opt-group">
+          <label class="opt-group-label">악센트 표시방법</label>
+          <div class="opt-radio-group">
+            <label class="opt-radio-card">
+              <input type="radio" name="accent-visual" value="fullscreen" />
+              <div class="opt-radio-text">
+                <strong>전체화면</strong>
+                <small>반짝이는 이펙트 화면 전체</small>
+              </div>
+            </label>
+            <label class="opt-radio-card">
+              <input type="radio" name="accent-visual" value="partial" checked />
+              <div class="opt-radio-text">
+                <strong>부분화면</strong>
+                <small>반짝이는 이펙트 기본상태 (중앙 원형)</small>
+              </div>
+            </label>
+            <label class="opt-radio-card">
+              <input type="radio" name="accent-visual" value="off" />
+              <div class="opt-radio-text">
+                <strong>끄기</strong>
+                <small>반짝이는 이펙트 끄기</small>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- 로그 제출하기 -->
+        <div class="opt-group">
+          <label class="opt-group-label">로그 제출</label>
+          <p class="opt-help-text">동작 오류나 이슈가 있을 때 최근 1분간의 로그를 클립보드에 복사합니다.</p>
+          <button id="btn-submit-logs" class="button-log-submit" type="button">
+            📋 로그 제출하기 (최근 1분 복사)
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- [로그 제출 완료 팝업] -->
+  <div id="log-alert-modal" class="alert-modal hidden" role="dialog" aria-modal="true">
+    <div class="alert-modal-card">
+      <span class="alert-icon">✉️</span>
+      <p id="log-alert-message" class="alert-message">‘inho95063@gmail.com’ 으로 로그를 보내주세요</p>
+      <p class="alert-sub">최근 1분간의 메트로놈 로그가 클립보드에 복사되었습니다.<br>이메일에 붙여넣기(Ctrl+V / Cmd+V)하여 전송해 주세요.</p>
+      <button id="btn-alert-close" class="button-primary alert-confirm-btn" type="button">확인</button>
+    </div>
+  </div>
+
   <script src="./app.js"></script>
 </body>
 </html>

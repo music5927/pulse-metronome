@@ -7,6 +7,10 @@
     tabSingle: $('tab-single'), tabSong: $('tab-song'),
     viewSingle: $('view-single'), viewSong: $('view-song'),
     status: $('status'),
+    // 상단 옵션 버튼
+    btnOpenOptions: $('btn-open-options'),
+    // 전체화면 악센트 플래시
+    fullscreenFlash: $('fullscreen-flash'),
     // 공통 박자 시각화
     beatLight: $('beat-light'), beatNumber: $('beat-number'), beatCount: $('beat-count'),
     beatCaption: $('beat-caption'), songProgressBadge: $('song-progress-badge'),
@@ -32,14 +36,34 @@
     edAccentControls: $('ed-accent-controls'), edBtnCancel: $('ed-btn-cancel'), edBtnSave: $('ed-btn-save'),
     // 하단 공통 컨트롤
     play: $('play-button'), playLabel: $('play-label'), tap: $('tap-button'),
-    mute: $('mute-button'), soundIcon: $('sound-icon'), soundLabel: $('sound-label')
+    mute: $('mute-button'), soundIcon: $('sound-icon'), soundLabel: $('sound-label'),
+    // 옵션 메뉴 모달
+    optionsModal: $('options-modal'), optionsBackdrop: $('options-backdrop'),
+    btnCloseOptions: $('btn-close-options'), btnSubmitLogs: $('btn-submit-logs'),
+    accentRadios: document.querySelectorAll('input[name="accent-visual"]'),
+    // 로그 제출 안내 팝업
+    logAlertModal: $('log-alert-modal'), btnAlertClose: $('btn-alert-close'),
+    logAlertMessage: $('log-alert-message')
   };
 
-  const SETTINGS_KEY = 'pulse-metronome-settings-v3';
-  const SONGS_KEY = 'pulse-metronome-songs-v3';
+  const SETTINGS_KEY = 'pulse-metronome-settings-v4';
+  const SONGS_KEY = 'pulse-metronome-songs-v4';
   const SCHEDULE_AHEAD_SECONDS = 0.12;
   const LOOKAHEAD_MS = 25;
   const SILENT_WAV = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQQAAAAA';
+
+  // 1분간의 런타임 로그를 보관하는 링 버퍼
+  const logRingBuffer = [];
+  function addLog(action, detail = {}) {
+    const entry = {
+      time: Date.now(),
+      iso: new Date().toISOString(),
+      action,
+      detail
+    };
+    logRingBuffer.push(entry);
+    if (logRingBuffer.length > 300) logRingBuffer.shift();
+  }
 
   // 기본 제공 샘플 곡 프리셋
   const DEFAULT_SONGS = [
@@ -98,37 +122,49 @@
 
   const state = {
     mode: savedSettings.mode === 'song' ? 'song' : 'single',
-    // 기본 모드 파라미터
-    bpm: clamp(Number(savedSettings.bpm) || 120, 40, 240),
-    beats: clamp(Number(savedSettings.beats) || 4, 2, 8),
-    division: [2, 4, 8].includes(Number(savedSettings.division)) ? Number(savedSettings.division) : 4,
+    // 1. BPM 범위 30~400
+    bpm: clamp(Number(savedSettings.bpm) || 120, 30, 400),
+    // 2. 박자 범위 2~31
+    beats: clamp(Number(savedSettings.beats) || 4, 2, 31),
+    // 3. 음표 단위 2, 4, 8, 16, 32
+    division: [2, 4, 8, 16, 32].includes(Number(savedSettings.division)) ? Number(savedSettings.division) : 4,
     volume: clamp(Number(savedSettings.volume) || 70, 0, 100),
     muted: Boolean(savedSettings.muted),
     accentBeats: normaliseAccents(savedSettings.accentBeats, Number(savedSettings.beats) || 4),
+    // 5. 옵션 설정: 악센트 표시방법 (fullscreen | partial | off)
+    options: {
+      accentVisual: ['fullscreen', 'partial', 'off'].includes(savedSettings.accentVisual) ? savedSettings.accentVisual : 'partial'
+    },
     // 곡 프리셋 목록
     songs: savedSongs,
     activeSongId: savedSettings.activeSongId || savedSongs[0]?.id || DEFAULT_SONGS[0].id,
     // 곡 모드 런타임 상태
     currentSectionIndex: 0,
-    currentMeasure: 0, // 해당 구간 내 마디 (0-indexed)
+    currentMeasure: 0,
     // 공통 런타임 상태
     playing: false,
-    currentBeat: 0, // 해당 마디 내 박자 (0-indexed)
+    currentBeat: 0,
     nextNoteTime: 0,
     schedulerTimer: null,
     audioContext: null,
     iosUnlockAudio: null,
     tapTimes: [],
     // 에디터 상태
-    editingSectionIndex: null, // null: 추가 모드, number: 수정 모드
+    editingSectionIndex: null,
     edAccents: [0]
   };
+
+  addLog('APP_INIT', {
+    mode: state.mode, bpm: state.bpm, beats: state.beats, division: state.division,
+    accentVisual: state.options.accentVisual
+  });
 
   function persistSettings() {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify({
       mode: state.mode,
       bpm: state.bpm, beats: state.beats, division: state.division,
       volume: state.volume, muted: state.muted, accentBeats: state.accentBeats,
+      accentVisual: state.options.accentVisual,
       activeSongId: state.activeSongId
     }));
   }
@@ -172,7 +208,7 @@
     elements.mute.setAttribute('aria-pressed', String(muted));
   }
 
-  // 기본 모드 UI 갱신
+  // 기본 모드 UI 갱신 (박자 2~31 버튼 렌더링)
   function renderSingleAccentControls() {
     elements.accentControls.replaceChildren();
     for (let b = 0; b < state.beats; b += 1) {
@@ -224,15 +260,12 @@
     elements.monMeasureProgress.textContent = `${curBar} / ${sec.bars}`;
     elements.monTotalProgress.textContent = `전체 ${overallBar} / ${totalBars} 마디`;
 
-    // 상단 뱃지 갱신
     elements.badgeSectionName.textContent = sec.name;
     elements.badgeBarCount.textContent = `마디 ${curBar} / ${sec.bars}`;
     elements.badgeTotalBar.textContent = `(전체 ${overallBar} / ${totalBars})`;
 
     elements.btnToggleLoop.textContent = song.loop ? '🔁 전곡 반복: ON' : '🔁 전곡 반복: OFF';
     elements.btnToggleLoop.classList.toggle('active', Boolean(song.loop));
-
-    // 박자 분모 표시 갱신
     elements.beatCount.textContent = sec.beats;
   }
 
@@ -307,7 +340,7 @@
     }
   }
 
-  // iOS 백그라운드 & 스피커 라우팅
+  // iOS Safari 백그라운드 & 스피커 라우팅
   function configureIosPlayback() {
     try {
       if (navigator.audioSession && 'type' in navigator.audioSession) {
@@ -351,14 +384,31 @@
     osc.stop(time + 0.064);
   }
 
-  // 박자 시각 효과 렌더링
+  // 박자 시각 효과 렌더링 (악센트 표시방법: 전체화면 | 부분화면 | 끄기)
   function renderBeat(beat, isAccent, captionOverride = null) {
     elements.beatNumber.textContent = String(beat + 1);
     elements.beatCaption.textContent = captionOverride || (isAccent ? `${beat + 1}박 · 강박` : `${beat + 1}번째 박`);
-    elements.beatLight.classList.remove('idle', 'active', 'accent');
-    void elements.beatLight.offsetWidth;
-    elements.beatLight.classList.add('active', isAccent ? 'accent' : '');
-    window.setTimeout(() => elements.beatLight.classList.remove('active', 'accent'), 85);
+
+    const visualMode = state.options.accentVisual; // 'fullscreen' | 'partial' | 'off'
+
+    if (visualMode === 'fullscreen') {
+      // 전체화면 모드: 악센트 시 화면 전체 플래시
+      if (isAccent) {
+        elements.fullscreenFlash.classList.add('flash-active');
+        window.setTimeout(() => elements.fullscreenFlash.classList.remove('flash-active'), 75);
+      }
+      elements.beatLight.classList.remove('idle', 'active', 'accent');
+    } else if (visualMode === 'partial') {
+      // 부분화면 모드: 중앙 원형 기본 이펙트
+      elements.beatLight.classList.remove('idle', 'active', 'accent');
+      void elements.beatLight.offsetWidth;
+      elements.beatLight.classList.add('active', isAccent ? 'accent' : '');
+      window.setTimeout(() => elements.beatLight.classList.remove('active', 'accent'), 80);
+    } else {
+      // 끄기 모드: 반짝임 효과 일체 없음 (숫자만 변경)
+      elements.beatLight.classList.remove('active', 'accent');
+      elements.beatLight.classList.add('idle');
+    }
   }
 
   // Web Audio Lookahead 스케줄러
@@ -375,7 +425,6 @@
           if (state.playing && state.mode === 'single') renderBeat(beat, accent);
         }, delay);
 
-        // 다음 박자 진행
         state.nextNoteTime += 60 / state.bpm;
         state.currentBeat = (state.currentBeat + 1) % state.beats;
       } else {
@@ -408,7 +457,6 @@
           }
         }, delay);
 
-        // 마디 및 구간 전이 계산
         state.nextNoteTime += 60 / curSec.bpm;
         state.currentBeat += 1;
         if (state.currentBeat >= curSec.beats) {
@@ -421,7 +469,6 @@
               if (song.loop) {
                 state.currentSectionIndex = 0;
               } else {
-                // 전곡 1회 재생 완료 후 정지 예약
                 const stopDelay = delay + (60 / curSec.bpm) * 1000;
                 window.setTimeout(() => {
                   if (state.playing) {
@@ -432,6 +479,7 @@
                     updateSongMonitorUI();
                     renderSectionsTimeline();
                     setStatus('곡 재생 완료');
+                    addLog('SONG_COMPLETE', { songId: song.id, songName: song.name });
                   }
                 }, stopDelay);
               }
@@ -450,8 +498,8 @@
       state.currentBeat = 0;
       if (state.mode === 'single') {
         state.nextNoteTime = state.audioContext.currentTime + 0.05;
+        addLog('PLAY_START', { mode: 'single', bpm: state.bpm, beats: state.beats, division: state.division });
       } else {
-        // 곡 모드 시작
         const song = getActiveSong();
         if (!song.sections || song.sections.length === 0) {
           throw new Error('재생할 마디 구간이 없습니다.');
@@ -459,6 +507,7 @@
         state.nextNoteTime = state.audioContext.currentTime + 0.05;
         updateSongMonitorUI();
         renderSectionsTimeline();
+        addLog('PLAY_START', { mode: 'song', songId: song.id, songName: song.name, secIdx: state.currentSectionIndex });
       }
       scheduler();
       state.schedulerTimer = window.setInterval(scheduler, LOOKAHEAD_MS);
@@ -467,6 +516,7 @@
       elements.playLabel.textContent = '정지';
       setStatus(state.mode === 'song' ? '곡 재생 중' : '재생 중', true);
     } catch (error) {
+      addLog('AUDIO_ERROR', { error: error.message });
       setStatus(error.message || '오디오를 시작하지 못했습니다.');
     }
   }
@@ -481,8 +531,10 @@
     elements.play.setAttribute('aria-pressed', 'false');
     elements.playLabel.textContent = '시작';
     elements.beatLight.classList.remove('active', 'accent');
+    elements.beatLight.classList.add('idle');
     elements.beatCaption.textContent = '다음 박자를 기다리는 중';
     setStatus('일시 정지');
+    addLog('PLAY_STOP', { mode: state.mode });
   }
 
   function togglePlayback() {
@@ -496,6 +548,7 @@
     updateSongMonitorUI();
     renderSectionsTimeline();
     setStatus('1마디로 이동');
+    addLog('SONG_REWIND');
   }
 
   function seekToSection(idx) {
@@ -507,12 +560,15 @@
     updateSongMonitorUI();
     renderSectionsTimeline();
     setStatus(`${song.sections[idx].name} 구간으로 이동`);
+    addLog('SONG_SEEK', { secIdx: idx, name: song.sections[idx].name });
   }
 
   function setSingleTempo(raw) {
-    state.bpm = clamp(Math.round(Number(raw) || 120), 40, 240);
+    const oldBpm = state.bpm;
+    state.bpm = clamp(Math.round(Number(raw) || 120), 30, 400);
     updateSingleUI();
     persistSettings();
+    if (oldBpm !== state.bpm) addLog('BPM_CHANGE', { from: oldBpm, to: state.bpm });
   }
 
   function tapTempo() {
@@ -529,16 +585,17 @@
     if (state.mode === 'single') {
       setSingleTempo(newBpm);
       elements.tap.querySelector('span').textContent = `${state.bpm} BPM 적용`;
+      addLog('TAP_TEMPO', { bpm: state.bpm });
     } else {
-      // 곡 모드일 때는 현재 구간 BPM 변경
       const song = getActiveSong();
       const curSec = song.sections[state.currentSectionIndex];
       if (curSec) {
-        curSec.bpm = clamp(Math.round(newBpm), 40, 240);
+        curSec.bpm = clamp(Math.round(newBpm), 30, 400);
         persistSongs();
         updateSongMonitorUI();
         renderSectionsTimeline();
         elements.tap.querySelector('span').textContent = `${curSec.bpm} BPM 적용`;
+        addLog('TAP_TEMPO_SONG', { secName: curSec.name, bpm: curSec.bpm });
       }
     }
     window.setTimeout(() => { elements.tap.querySelector('span').textContent = '템포 맞추기'; }, 900);
@@ -591,7 +648,7 @@
     const song = getActiveSong();
     const name = elements.edName.value.trim() || `구간 ${song.sections.length + 1}`;
     const bars = clamp(Math.round(Number(elements.edBars.value) || 4), 1, 999);
-    const bpm = clamp(Math.round(Number(elements.edBpm.value) || 120), 40, 240);
+    const bpm = clamp(Math.round(Number(elements.edBpm.value) || 120), 30, 400);
     const beats = clamp(Math.round(Number(elements.edBeats.value) || 4), 2, 8);
     const accentBeats = normaliseAccents(state.edAccents, beats);
 
@@ -605,15 +662,86 @@
     if (state.editingSectionIndex !== null && song.sections[state.editingSectionIndex]) {
       song.sections[state.editingSectionIndex] = payload;
       setStatus(`구간 '${name}' 수정 완료`);
+      addLog('SECTION_EDIT', { idx: state.editingSectionIndex, payload });
     } else {
       song.sections.push(payload);
       setStatus(`새 구간 '${name}' 추가 완료`);
+      addLog('SECTION_ADD', { payload });
     }
 
     persistSongs();
     closeSectionEditor();
     updateSongMonitorUI();
     renderSectionsTimeline();
+  }
+
+  // 옵션 모달 및 악센트 표시방법 조작
+  function openOptionsModal() {
+    elements.accentRadios.forEach((r) => {
+      r.checked = r.value === state.options.accentVisual;
+    });
+    elements.optionsModal.classList.remove('hidden');
+    addLog('OPTIONS_OPEN');
+  }
+
+  function closeOptionsModal() {
+    elements.optionsModal.classList.add('hidden');
+    addLog('OPTIONS_CLOSE');
+  }
+
+  // 1분간 로그 복사 및 팝업 송출
+  function submitRecentLogs() {
+    const now = Date.now();
+    const oneMinAgo = now - 60000;
+    const recent = logRingBuffer.filter((l) => l.time >= oneMinAgo);
+
+    const song = getActiveSong();
+    const curSec = song.sections[state.currentSectionIndex] || {};
+
+    const reportLines = [
+      `=== PULSE METRONOME RECENT 1-MINUTE LOG ===`,
+      `생성 시각: ${new Date().toLocaleString('ko-KR')}`,
+      `User Agent: ${navigator.userAgent}`,
+      `모드: ${state.mode}`,
+      `단일 모드: BPM=${state.bpm}, 박자=${state.beats}, 음표=${state.division}, 볼륨=${state.volume}, 음소거=${state.muted}`,
+      `곡 모드: 곡명='${song.name}', 현재구간='${curSec.name}', BPM=${curSec.bpm}, 박자=${curSec.beats}`,
+      `옵션: 악센트 표시방법=${state.options.accentVisual}`,
+      `오디오 상태: ${state.audioContext?.state || '미생성'}, 재생 중=${state.playing}`,
+      `----------------------------------------`,
+      `[최근 1분간의 이벤트 (${recent.length}건)]:`,
+      ...(recent.length > 0
+        ? recent.map((l) => `[${new Date(l.time).toLocaleTimeString()}.${String(l.time % 1000).padStart(3, '0')}] ${l.action} ${JSON.stringify(l.detail)}`)
+        : [`(최근 1분간 기록된 이벤트가 없습니다)`]),
+      `========================================`
+    ];
+
+    const reportText = reportLines.join('\n');
+
+    // 클립보드 복사 실행
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(reportText).catch(() => copyFallback(reportText));
+    } else {
+      copyFallback(reportText);
+    }
+
+    addLog('SUBMIT_LOGS_CLICKED', { logCount: recent.length });
+
+    // 요청하신 문구의 팝업 송출
+    elements.logAlertMessage.textContent = "‘inho95063@gmail.com’ 으로 로그를 보내주세요";
+    elements.logAlertModal.classList.remove('hidden');
+  }
+
+  function copyFallback(text) {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.append(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+    } catch (_) {}
   }
 
   // 이벤트 바인딩
@@ -624,6 +752,7 @@
     state.mode = 'single';
     updateModeView();
     persistSettings();
+    addLog('MODE_SWITCH', { mode: 'single' });
     if (wasPlaying) start();
   });
 
@@ -634,33 +763,61 @@
     state.mode = 'song';
     updateModeView();
     persistSettings();
+    addLog('MODE_SWITCH', { mode: 'song' });
     if (wasPlaying) start();
+  });
+
+  // 옵션 메뉴 버튼 및 모달 리스너
+  elements.btnOpenOptions.addEventListener('click', openOptionsModal);
+  elements.btnCloseOptions.addEventListener('click', closeOptionsModal);
+  elements.optionsBackdrop.addEventListener('click', closeOptionsModal);
+
+  elements.accentRadios.forEach((radio) => {
+    radio.addEventListener('change', (e) => {
+      state.options.accentVisual = e.target.value;
+      persistSettings();
+      addLog('ACCENT_VISUAL_CHANGE', { visual: state.options.accentVisual });
+    });
+  });
+
+  elements.btnSubmitLogs.addEventListener('click', submitRecentLogs);
+  elements.btnAlertClose.addEventListener('click', () => {
+    elements.logAlertModal.classList.add('hidden');
   });
 
   // 기본 모드 입력 핸들러
   elements.tempo.addEventListener('change', (e) => setSingleTempo(e.target.value));
   elements.tempo.addEventListener('input', (e) => {
     const v = Number(e.target.value);
-    if (v >= 40 && v <= 240) setSingleTempo(v);
+    if (v >= 30 && v <= 400) setSingleTempo(v);
   });
   elements.slider.addEventListener('input', (e) => setSingleTempo(e.target.value));
   elements.tempoDown.addEventListener('click', () => setSingleTempo(state.bpm - 1));
   elements.tempoUp.addEventListener('click', () => setSingleTempo(state.bpm + 1));
+
+  // 박자 범위 2~31 핸들러
   elements.beats.addEventListener('change', (e) => {
-    state.beats = Number(e.target.value);
+    state.beats = clamp(Number(e.target.value) || 4, 2, 31);
     state.currentBeat = 0;
     state.accentBeats = normaliseAccents(state.accentBeats, state.beats);
     updateSingleUI();
     persistSettings();
+    addLog('BEATS_CHANGE', { beats: state.beats });
   });
+
+  // 음표 2, 4, 8, 16, 32 핸들러
   elements.division.addEventListener('change', (e) => {
     state.division = Number(e.target.value);
     persistSettings();
+    addLog('DIVISION_CHANGE', { division: state.division });
   });
+
   elements.volume.addEventListener('input', (e) => {
     state.volume = Number(e.target.value);
     persistSettings();
+    addLog('VOLUME_CHANGE', { volume: state.volume });
   });
+
   elements.accentControls.addEventListener('click', (e) => {
     const btn = e.target.closest('.accent-beat');
     if (!btn) return;
@@ -670,6 +827,7 @@
       : [...state.accentBeats, b].sort((x, y) => x - y);
     renderSingleAccentControls();
     persistSettings();
+    addLog('ACCENTS_TOGGLE', { accents: state.accentBeats });
   });
 
   // 공통 컨트롤
@@ -679,6 +837,7 @@
     state.muted = !state.muted;
     updateSoundButton();
     persistSettings();
+    addLog('MUTE_TOGGLE', { muted: state.muted });
   });
 
   // 곡 모드 핸들러
@@ -691,6 +850,7 @@
     renderSectionsTimeline();
     persistSettings();
     setStatus(`곡 변경: ${getActiveSong().name}`);
+    addLog('SONG_SELECT', { id: state.activeSongId, name: getActiveSong().name });
   });
 
   elements.songBtnNew.addEventListener('click', () => {
@@ -714,16 +874,19 @@
     persistSettings();
     updateModeView();
     setStatus(`새 곡 '${newSong.name}' 생성 완료`);
+    addLog('SONG_NEW', { name: newSong.name });
   });
 
   elements.songBtnRename.addEventListener('click', () => {
     const song = getActiveSong();
     const newName = window.prompt('곡 이름 변경:', song.name);
     if (!newName || !newName.trim() || newName.trim() === song.name) return;
+    const oldName = song.name;
     song.name = newName.trim();
     persistSongs();
     renderSongSelect();
     setStatus(`곡 이름 변경됨: ${song.name}`);
+    addLog('SONG_RENAME', { from: oldName, to: song.name });
   });
 
   elements.songBtnDuplicate.addEventListener('click', () => {
@@ -743,6 +906,7 @@
     persistSettings();
     updateModeView();
     setStatus(`곡 복제 완료: ${cloned.name}`);
+    addLog('SONG_DUPLICATE', { name: cloned.name });
   });
 
   elements.songBtnDelete.addEventListener('click', () => {
@@ -752,6 +916,7 @@
     }
     const current = getActiveSong();
     if (!window.confirm(`'${current.name}' 곡 프리셋을 삭제하시겠습니까?`)) return;
+    const delName = current.name;
     state.songs = state.songs.filter((s) => s.id !== current.id);
     state.activeSongId = state.songs[0].id;
     state.currentSectionIndex = 0;
@@ -761,6 +926,7 @@
     persistSettings();
     updateModeView();
     setStatus(`곡 삭제 완료`);
+    addLog('SONG_DELETE', { name: delName });
   });
 
   elements.btnRewind.addEventListener('click', rewindSong);
@@ -769,6 +935,7 @@
     song.loop = !song.loop;
     persistSongs();
     updateSongMonitorUI();
+    addLog('SONG_LOOP_TOGGLE', { loop: song.loop });
   });
 
   // 타임라인 내 구간 클릭 및 조작
@@ -789,6 +956,7 @@
         persistSongs();
         updateSongMonitorUI();
         renderSectionsTimeline();
+        addLog('SECTION_MOVE_UP', { idx });
       }
       return;
     }
@@ -802,6 +970,7 @@
         persistSongs();
         updateSongMonitorUI();
         renderSectionsTimeline();
+        addLog('SECTION_MOVE_DOWN', { idx });
       }
       return;
     }
@@ -829,6 +998,7 @@
         persistSongs();
         updateSongMonitorUI();
         renderSectionsTimeline();
+        addLog('SECTION_DELETE', { name: targetSec.name });
       }
       return;
     }
@@ -882,8 +1052,10 @@
       ...state,
       songs: JSON.parse(JSON.stringify(state.songs)),
       activeSong: getActiveSong(),
-      schedulerTimer: Boolean(state.schedulerTimer)
+      schedulerTimer: Boolean(state.schedulerTimer),
+      logCount: logRingBuffer.length
     }),
-    start, stop, togglePlayback, setSingleTempo, seekToSection, rewindSong
+    start, stop, togglePlayback, setSingleTempo, seekToSection, rewindSong,
+    openOptionsModal, closeOptionsModal, submitRecentLogs, addLog
   };
 })();
