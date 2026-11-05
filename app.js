@@ -44,13 +44,15 @@
     optionsModal: $('options-modal'), optionsBackdrop: $('options-backdrop'),
     btnCloseOptions: $('btn-close-options'), btnSubmitLogs: $('btn-submit-logs'),
     accentRadios: document.querySelectorAll('input[name="accent-visual"]'),
+    voiceVolumeSlider: $('voice-volume-slider'),
+    voiceVolumeDisplay: $('voice-volume-display'),
     // 로그 제출 안내 팝업
     logAlertModal: $('log-alert-modal'), btnAlertClose: $('btn-alert-close'),
     logAlertMessage: $('log-alert-message')
   };
 
-  const SETTINGS_KEY = 'pulse-metronome-settings-v5';
-  const SONGS_KEY = 'pulse-metronome-songs-v5';
+  const SETTINGS_KEY = 'pulse-metronome-settings-v6';
+  const SONGS_KEY = 'pulse-metronome-songs-v6';
   const SCHEDULE_AHEAD_SECONDS = 0.12;
   const LOOKAHEAD_MS = 25;
   const SILENT_WAV = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQQAAAAA';
@@ -68,61 +70,11 @@
     if (logRingBuffer.length > 300) logRingBuffer.shift();
   }
 
-  // 4. 가이드 보이스: 여자 목소리 영어 음성 합성
-  const VoiceGuide = {
-    synth: typeof window !== 'undefined' ? window.speechSynthesis : null,
-    femaleVoice: null,
-    init() {
-      if (!this.synth) return;
-      const selectVoice = () => {
-        const voices = this.synth.getVoices();
-        if (!voices || voices.length === 0) return null;
-        const enVoices = voices.filter((v) => v.lang && v.lang.toLowerCase().startsWith('en'));
-        const preferredFemale = [
-          'samantha', 'karen', 'victoria', 'moira', 'tessa', 'kathy',
-          'jenny', 'zira', 'ava', 'allison', 'susan', 'serena', 'fiona', 'veena'
-        ];
-        let match = enVoices.find((v) => preferredFemale.some((name) => v.name.toLowerCase().includes(name)));
-        if (!match) {
-          match = enVoices.find((v) => v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('woman'));
-        }
-        if (!match) {
-          match = enVoices[0] || voices[0];
-        }
-        this.femaleVoice = match;
-        return match;
-      };
-
-      selectVoice();
-      if (this.synth.onvoiceschanged !== undefined) {
-        this.synth.onvoiceschanged = () => selectVoice();
-      }
-    },
-    speak(text, rate = 1.25, pitch = 1.2) {
-      if (!this.synth) return;
-      try {
-        this.synth.cancel();
-        const utter = new SpeechSynthesisUtterance(String(text));
-        if (!this.femaleVoice) this.init();
-        if (this.femaleVoice) utter.voice = this.femaleVoice;
-        utter.lang = 'en-US';
-        utter.rate = rate;
-        utter.pitch = pitch;
-        this.synth.speak(utter);
-      } catch (_) {}
-    },
-    speakSectionName(name) {
-      // 3. Section 바뀌기 두마디 전 영어 음성으로 섹션 이름 말하기
-      const clean = String(name || '').replace(/Brigde/i, 'Bridge').replace(/-/g, ' ');
-      this.speak(clean, 1.15, 1.2);
-    },
-    speakCount(number) {
-      // 3. Section 바뀌기 한마디 전 1부터 숫자 카운트 출력
-      this.speak(String(number), 1.35, 1.2);
-    }
-  };
-
-  VoiceGuide.init();
+  function clamp(val, min, max) { return Math.min(max, Math.max(min, val)); }
+  function normaliseAccents(arr, beats) {
+    const list = Array.isArray(arr) ? arr : [0];
+    return [...new Set(list.map(Number).filter((b) => Number.isInteger(b) && b >= 0 && b < beats))];
+  }
 
   // 6. Section 표준 제목 리스트: Ready, Intro, Verse, Pre-Chorus, Chorus, Pre-Bridge, Brigde, Solo, Outro
   const ALLOWED_SECTION_TITLES = [
@@ -169,12 +121,6 @@
     }
   ];
 
-  function clamp(val, min, max) { return Math.min(max, Math.max(min, val)); }
-  function normaliseAccents(arr, beats) {
-    const list = Array.isArray(arr) ? arr : [0];
-    return [...new Set(list.map(Number).filter((b) => Number.isInteger(b) && b >= 0 && b < beats))];
-  }
-
   // 로컬 스토리지 로드
   const savedSettings = (() => { try { return JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}; } catch { return {}; } })();
   const savedSongs = (() => {
@@ -197,9 +143,10 @@
     volume: clamp(Number(savedSettings.volume) || 70, 0, 100),
     muted: Boolean(savedSettings.muted),
     accentBeats: normaliseAccents(savedSettings.accentBeats, Number(savedSettings.beats) || 4),
-    // 옵션: 악센트 표시방법 (fullscreen | partial | off)
+    // 옵션: 악센트 표시방법 (fullscreen | partial | off) & 보이스 가이드 볼륨 (0~100)
     options: {
-      accentVisual: ['fullscreen', 'partial', 'off'].includes(savedSettings.accentVisual) ? savedSettings.accentVisual : 'partial'
+      accentVisual: ['fullscreen', 'partial', 'off'].includes(savedSettings.accentVisual) ? savedSettings.accentVisual : 'partial',
+      voiceVolume: clamp(Number(savedSettings.voiceVolume ?? 80), 0, 100)
     },
     // 트랙 메트로놈 프리셋
     songs: savedSongs,
@@ -220,9 +167,88 @@
     edAccents: [0]
   };
 
+  // Web Audio 기반 고정밀 가이드 보이스 엔진 (iOS 무음모드/스피커 출력 및 볼륨 조절 완전 지원)
+  const VoiceGuide = {
+    audioContext: null,
+    spriteBuffer: null,
+    voiceGain: null,
+    isReady: false,
+    isLoading: false,
+
+    async init(audioCtx) {
+      if (audioCtx) this.audioContext = audioCtx;
+      if (this.audioContext && !this.voiceGain) {
+        this.voiceGain = this.audioContext.createGain();
+        const vol = (state.options.voiceVolume / 100);
+        this.voiceGain.gain.setValueAtTime(vol, this.audioContext.currentTime);
+        this.voiceGain.connect(this.audioContext.destination);
+      }
+      if (this.isReady || this.isLoading) return;
+      if (typeof window !== 'undefined' && window.VOICE_SPRITE_DATA && this.audioContext) {
+        this.isLoading = true;
+        try {
+          const res = await fetch(window.VOICE_SPRITE_DATA);
+          const arrayBuf = await res.arrayBuffer();
+          this.spriteBuffer = await this.audioContext.decodeAudioData(arrayBuf);
+          this.isReady = true;
+          this.isLoading = false;
+        } catch (e) {
+          this.isLoading = false;
+          console.warn('Voice sprite decode error', e);
+        }
+      }
+    },
+
+    setVolume(percent) {
+      const vol = clamp(Number(percent) || 0, 0, 100) / 100;
+      if (this.voiceGain && this.audioContext) {
+        this.voiceGain.gain.setValueAtTime(vol, this.audioContext.currentTime);
+      }
+    },
+
+    playClip(key, scheduleTime = null) {
+      if (!this.audioContext) return;
+      const lookupKey = String(key || '').toLowerCase().replace(/brigde/i, 'bridge').trim();
+      const item = window.VOICE_SPRITE_MAP ? window.VOICE_SPRITE_MAP[lookupKey] : null;
+
+      if (this.isReady && this.spriteBuffer && item) {
+        try {
+          const source = this.audioContext.createBufferSource();
+          source.buffer = this.spriteBuffer;
+          source.connect(this.voiceGain || this.audioContext.destination);
+          const startTime = scheduleTime !== null ? Math.max(scheduleTime, this.audioContext.currentTime) : this.audioContext.currentTime;
+          source.start(startTime, item.start, item.duration);
+        } catch (_) {}
+      } else {
+        this.speakFallback(key);
+      }
+    },
+
+    speakSectionName(name, scheduleTime = null) {
+      const clean = String(name || '').toLowerCase().replace(/brigde/i, 'bridge').replace(/\s+/g, '-').trim();
+      this.playClip(clean, scheduleTime);
+    },
+
+    speakCount(number, scheduleTime = null) {
+      this.playClip(String(number), scheduleTime);
+    },
+
+    speakFallback(text) {
+      try {
+        if (typeof window === 'undefined' || !window.speechSynthesis) return;
+        const utter = new SpeechSynthesisUtterance(String(text));
+        utter.lang = 'en-US';
+        utter.volume = (state.options.voiceVolume / 100);
+        utter.rate = 1.25;
+        utter.pitch = 1.2;
+        window.speechSynthesis.speak(utter);
+      } catch (_) {}
+    }
+  };
+
   addLog('TRACK_APP_INIT', {
     mode: state.mode, bpm: state.bpm, beats: state.beats, division: state.division,
-    accentVisual: state.options.accentVisual
+    accentVisual: state.options.accentVisual, voiceVolume: state.options.voiceVolume
   });
 
   function persistSettings() {
@@ -231,6 +257,7 @@
       bpm: state.bpm, beats: state.beats, division: state.division,
       volume: state.volume, muted: state.muted, accentBeats: state.accentBeats,
       accentVisual: state.options.accentVisual,
+      voiceVolume: state.options.voiceVolume,
       activeSongId: state.activeSongId
     }));
   }
@@ -438,7 +465,7 @@
     configureIosPlayback();
     if (!state.audioContext) state.audioContext = new AudioContextClass({ latencyHint: 'interactive' });
     unlockIosSpeaker();
-    VoiceGuide.init();
+    await VoiceGuide.init(state.audioContext);
     if (state.audioContext.state === 'suspended') await state.audioContext.resume();
   }
 
@@ -528,7 +555,15 @@
         const isTwoBarsBeforeName = isGuideEnabled && (barsRemaining === 2) && (beat === 0);
         const isOneBarBeforeCount = isGuideEnabled && (barsRemaining === 1);
 
+        // 오디오 스케줄링 (클릭음 및 가이드 보이스를 동일 Web Audio 컨텍스트에서 정밀 재생)
         scheduleClick(noteTime, accent);
+
+        if (isTwoBarsBeforeName && nextSec) {
+          VoiceGuide.speakSectionName(nextSec.name, noteTime);
+        } else if (isOneBarBeforeCount) {
+          VoiceGuide.speakCount(beat + 1, noteTime);
+        }
+
         const delay = Math.max(0, (noteTime - state.audioContext.currentTime) * 1000);
         window.setTimeout(() => {
           if (state.playing && state.mode === 'song') {
@@ -536,13 +571,10 @@
             updateSongMonitorUI();
             renderSectionsTimeline();
 
-            // 3. 영어 음성 출력 (여자 목소리)
             if (isTwoBarsBeforeName && nextSec) {
-              VoiceGuide.speakSectionName(nextSec.name);
-              addLog('GUIDE_VOICE_SECTION', { target: nextSec.name });
+              addLog('GUIDE_VOICE_SECTION', { target: nextSec.name, bar: measure + 1 });
             } else if (isOneBarBeforeCount) {
-              VoiceGuide.speakCount(beat + 1);
-              addLog('GUIDE_VOICE_COUNT', { count: beat + 1 });
+              addLog('GUIDE_VOICE_COUNT', { count: beat + 1, bar: measure + 1 });
             }
           }
         }, delay);
@@ -617,7 +649,6 @@
     window.clearInterval(state.schedulerTimer);
     state.schedulerTimer = null;
     state.iosUnlockAudio?.pause();
-    VoiceGuide.synth?.cancel();
     elements.play.classList.remove('is-playing');
     elements.play.setAttribute('aria-pressed', 'false');
     elements.playLabel.textContent = '시작';
@@ -780,11 +811,15 @@
     renderSectionsTimeline();
   }
 
-  // 옵션 모달 및 악센트 표시방법 조작
+  // 옵션 모달 및 악센트 표시방법 & 볼륨 조작
   function openOptionsModal() {
     elements.accentRadios.forEach((r) => {
       r.checked = r.value === state.options.accentVisual;
     });
+    if (elements.voiceVolumeSlider && elements.voiceVolumeDisplay) {
+      elements.voiceVolumeSlider.value = state.options.voiceVolume;
+      elements.voiceVolumeDisplay.textContent = `${state.options.voiceVolume}%`;
+    }
     elements.optionsModal.classList.remove('hidden');
     addLog('OPTIONS_OPEN');
   }
@@ -810,8 +845,8 @@
       `모드: ${state.mode === 'song' ? '트랙 메트로놈' : '기본 메트로놈'}`,
       `단일 모드: BPM=${state.bpm}, 박자=${state.beats}, 음표=${state.division}, 볼륨=${state.volume}, 음소거=${state.muted}`,
       `트랙 모드: 트랙명='${song.name}', 현재구간='${curSec.name}', BPM=${curSec.bpm}, 박자=${curSec.beats}/${curSec.division || 4}, 가이드보이스=${curSec.guideVoice !== false}`,
-      `옵션: 악센트 표시방법=${state.options.accentVisual}`,
-      `오디오 상태: ${state.audioContext?.state || '미생성'}, 재생 중=${state.playing}`,
+      `옵션: 악센트 표시방법=${state.options.accentVisual}, 보이스 가이드 볼륨=${state.options.voiceVolume}%`,
+      `오디오 상태: ${state.audioContext?.state || '미생성'}, 재생 중=${state.playing}, 보이스엔진 준비=${VoiceGuide.isReady}`,
       `----------------------------------------`,
       `[최근 1분간의 이벤트 (${recent.length}건)]:`,
       ...(recent.length > 0
@@ -881,6 +916,18 @@
       persistSettings();
       addLog('ACCENT_VISUAL_CHANGE', { visual: state.options.accentVisual });
     });
+  });
+
+  // 1. 보이스 가이드 볼륨 조절 리스너
+  elements.voiceVolumeSlider?.addEventListener('input', (e) => {
+    const vol = clamp(Number(e.target.value) || 0, 0, 100);
+    state.options.voiceVolume = vol;
+    if (elements.voiceVolumeDisplay) {
+      elements.voiceVolumeDisplay.textContent = `${vol}%`;
+    }
+    VoiceGuide.setVolume(vol);
+    persistSettings();
+    addLog('VOICE_VOLUME_CHANGE', { volume: vol });
   });
 
   elements.btnSubmitLogs.addEventListener('click', submitRecentLogs);
@@ -1113,6 +1160,7 @@
   });
 
   elements.btnAddSection.addEventListener('click', () => openSectionEditor(null));
+  elements.editorBtnClose.addEventListener('closeSectionEditor', closeSectionEditor);
   elements.editorBtnClose.addEventListener('click', closeSectionEditor);
   elements.edBtnCancel.addEventListener('click', closeSectionEditor);
   elements.edBtnSave.addEventListener('click', saveSectionEditor);
@@ -1160,7 +1208,8 @@
       activeSong: getActiveSong(),
       schedulerTimer: Boolean(state.schedulerTimer),
       logCount: logRingBuffer.length,
-      voiceName: VoiceGuide.femaleVoice?.name || null
+      voiceReady: VoiceGuide.isReady,
+      voiceVolume: state.options.voiceVolume
     }),
     VoiceGuide,
     start, stop, togglePlayback, setSingleTempo, seekToSection, rewindSong,

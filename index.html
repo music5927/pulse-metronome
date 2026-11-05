@@ -299,6 +299,20 @@
           </div>
         </div>
 
+        <!-- 보이스 가이드 볼륨 설정 -->
+        <div class="opt-group">
+          <div class="opt-label-row">
+            <label class="opt-group-label" for="voice-volume-slider">보이스 가이드 볼륨</label>
+            <span id="voice-volume-display" class="opt-val-badge">80%</span>
+          </div>
+          <p class="opt-help-text">트랙 메트로놈의 파트명 및 카운트 음성 볼륨을 조절합니다.</p>
+          <div class="volume-slider-wrap">
+            <span class="vol-icon" aria-hidden="true">🔈</span>
+            <input id="voice-volume-slider" class="tempo-slider" type="range" min="0" max="100" value="80" aria-label="보이스 가이드 볼륨" />
+            <span class="vol-icon" aria-hidden="true">🔊</span>
+          </div>
+        </div>
+
         <!-- 로그 제출하기 -->
         <div class="opt-group">
           <label class="opt-group-label">로그 제출</label>
@@ -321,6 +335,7 @@
     </div>
   </div>
 
+  <script src="./voice-data.js"></script>
   <script src="./app.js"></script>
 </body>
 </html>

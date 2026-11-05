@@ -311,7 +311,11 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 
 .options-modal-body { padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 16px; }
 .opt-group { display: flex; flex-direction: column; gap: 5px; }
+.opt-label-row { display: flex; align-items: center; justify-content: space-between; }
 .opt-group-label { font-size: .78rem; font-weight: 850; color: var(--accent-bright); }
+.opt-val-badge { padding: 1px 7px; border-radius: 999px; background: rgba(255,192,107,.15); color: var(--accent-bright); font-size: .7rem; font-weight: 850; }
+.volume-slider-wrap { display: grid; grid-template-columns: 20px 1fr 20px; align-items: center; gap: 8px; margin-top: 4px; }
+.vol-icon { font-size: .85rem; text-align: center; }
 .opt-help-text { margin: 0; font-size: .66rem; color: var(--muted); line-height: 1.4; }
 
 .opt-radio-group { display: flex; flex-direction: column; gap: 5px; margin-top: 3px; }
