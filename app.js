@@ -51,11 +51,18 @@
     logAlertMessage: $('log-alert-message')
   };
 
-  const SETTINGS_KEY = 'pulse-metronome-settings-v6';
-  const SONGS_KEY = 'pulse-metronome-songs-v6';
+  const SETTINGS_KEY = 'pulse-metronome-settings-v8';
+  const SONGS_KEY = 'pulse-metronome-songs-v8';
   const SCHEDULE_AHEAD_SECONDS = 0.12;
   const LOOKAHEAD_MS = 25;
   const SILENT_WAV = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQQAAAAA';
+
+  // 구버전 로컬스토리지 정리
+  try {
+    localStorage.removeItem('pulse-metronome-songs-v6');
+    localStorage.removeItem('pulse-metronome-songs-v7');
+    localStorage.removeItem('pulse-metronome-songs');
+  } catch (_) {}
 
   // 1분간의 런타임 로그를 보관하는 링 버퍼
   const logRingBuffer = [];
@@ -81,42 +88,60 @@
     'Ready', 'Intro', 'Verse', 'Pre-Chorus', 'Chorus', 'Pre-Bridge', 'Bridge', 'Solo', 'Outro'
   ];
 
-  // 기본 트랙 메트로놈 프리셋
+  // 기본 트랙 메트로놈 프리셋 (Mrs. GREEN APPLE 정밀 분석 기반 샘플, Ready 4마디 시작)
   const DEFAULT_SONGS = [
     {
-      id: 'track-sample-1',
-      name: '기본 밴드 트랙 (가이드 보이스 포함)',
+      id: 'mga-a-posteriori',
+      name: 'Mrs. GREEN APPLE - A Posteriori',
       loop: true,
       sections: [
-        { id: 'sec-1', name: 'Ready', bars: 2, bpm: 120, beats: 4, division: 4, guideVoice: true, accentBeats: [0] },
-        { id: 'sec-2', name: 'Intro', bars: 4, bpm: 120, beats: 4, division: 4, guideVoice: true, accentBeats: [0] },
-        { id: 'sec-3', name: 'Verse', bars: 8, bpm: 120, beats: 4, division: 4, guideVoice: true, accentBeats: [0] },
-        { id: 'sec-4', name: 'Pre-Chorus', bars: 4, bpm: 120, beats: 3, division: 4, guideVoice: true, accentBeats: [0] },
-        { id: 'sec-5', name: 'Chorus', bars: 8, bpm: 144, beats: 4, division: 4, guideVoice: true, accentBeats: [0, 2] },
-        { id: 'sec-6', name: 'Solo', bars: 4, bpm: 144, beats: 4, division: 4, guideVoice: true, accentBeats: [0] },
-        { id: 'sec-7', name: 'Outro', bars: 4, bpm: 108, beats: 4, division: 4, guideVoice: true, accentBeats: [0] }
+        // 곡 분석: 기본 5/4, 모티프에서는 3/4·6/8·1/4(또는 2/4)로 전환. BPM은 4분음표=100 기준.
+        { id: 'ap-1', name: 'Ready', bars: 4, bpm: 200, beats: 6, division: 8, guideVoice: true, accentBeats: [0, 3] },
+        { id: 'ap-2', name: 'Intro', bars: 12, bpm: 200, beats: 6, division: 8, guideVoice: true, accentBeats: [0, 3] },
+        { id: 'ap-3', name: 'Intro', bars: 1, bpm: 100, beats: 1, division: 4, guideVoice: true, accentBeats: [0] },
+        { id: 'ap-4', name: 'Verse', bars: 6, bpm: 100, beats: 5, division: 4, guideVoice: true, accentBeats: [0, 3] },
+        { id: 'ap-5', name: 'Pre-Chorus', bars: 2, bpm: 100, beats: 3, division: 4, guideVoice: true, accentBeats: [0] },
+        { id: 'ap-6', name: 'Pre-Chorus', bars: 1, bpm: 200, beats: 6, division: 8, guideVoice: true, accentBeats: [0, 3] },
+        { id: 'ap-7', name: 'Pre-Chorus', bars: 1, bpm: 100, beats: 2, division: 4, guideVoice: true, accentBeats: [0] },
+        { id: 'ap-8', name: 'Verse', bars: 10, bpm: 100, beats: 5, division: 4, guideVoice: true, accentBeats: [0, 3] },
+        { id: 'ap-9', name: 'Chorus', bars: 6, bpm: 100, beats: 5, division: 4, guideVoice: true, accentBeats: [0, 3] },
+        { id: 'ap-10', name: 'Chorus', bars: 2, bpm: 100, beats: 3, division: 4, guideVoice: true, accentBeats: [0] },
+        { id: 'ap-11', name: 'Chorus', bars: 1, bpm: 200, beats: 6, division: 8, guideVoice: true, accentBeats: [0, 3] },
+        { id: 'ap-12', name: 'Chorus', bars: 1, bpm: 100, beats: 1, division: 4, guideVoice: true, accentBeats: [0] },
+        { id: 'ap-13', name: 'Solo', bars: 8, bpm: 100, beats: 5, division: 4, guideVoice: true, accentBeats: [0, 3] },
+        { id: 'ap-14', name: 'Verse', bars: 8, bpm: 100, beats: 5, division: 4, guideVoice: true, accentBeats: [0, 3] },
+        { id: 'ap-15', name: 'Chorus', bars: 6, bpm: 100, beats: 5, division: 4, guideVoice: true, accentBeats: [0, 3] },
+        { id: 'ap-16', name: 'Bridge', bars: 8, bpm: 100, beats: 3, division: 4, guideVoice: true, accentBeats: [0] },
+        { id: 'ap-17', name: 'Bridge', bars: 1, bpm: 100, beats: 5, division: 4, guideVoice: true, accentBeats: [0, 3] },
+        { id: 'ap-18', name: 'Chorus', bars: 12, bpm: 100, beats: 5, division: 4, guideVoice: true, accentBeats: [0, 3] },
+        { id: 'ap-19', name: 'Chorus', bars: 2, bpm: 100, beats: 3, division: 4, guideVoice: true, accentBeats: [0] },
+        { id: 'ap-20', name: 'Chorus', bars: 1, bpm: 200, beats: 6, division: 8, guideVoice: true, accentBeats: [0, 3] },
+        { id: 'ap-21', name: 'Chorus', bars: 1, bpm: 100, beats: 1, division: 4, guideVoice: true, accentBeats: [0] },
+        { id: 'ap-22', name: 'Outro', bars: 5, bpm: 100, beats: 5, division: 4, guideVoice: true, accentBeats: [0, 3] },
+        { id: 'ap-23', name: 'Outro', bars: 1, bpm: 100, beats: 2, division: 4, guideVoice: true, accentBeats: [0] },
+        { id: 'ap-24', name: 'Outro', bars: 2, bpm: 100, beats: 3, division: 4, guideVoice: true, accentBeats: [0] },
+        { id: 'ap-25', name: 'Outro', bars: 1, bpm: 100, beats: 6, division: 4, guideVoice: true, accentBeats: [0, 3] },
+        { id: 'ap-26', name: 'Outro', bars: 1, bpm: 100, beats: 2, division: 4, guideVoice: true, accentBeats: [0] }
       ]
     },
     {
-      id: 'track-sample-2',
-      name: 'Mrs. GREEN APPLE 스타일 트랙',
+      id: 'mga-start',
+      name: 'Mrs. GREEN APPLE - StaRt',
       loop: true,
       sections: [
-        { id: 'mga-1', name: 'Intro', bars: 4, bpm: 128, beats: 4, division: 4, guideVoice: true, accentBeats: [0] },
-        { id: 'mga-2', name: 'Verse', bars: 8, bpm: 128, beats: 4, division: 4, guideVoice: true, accentBeats: [0] },
-        { id: 'mga-3', name: 'Pre-Chorus', bars: 4, bpm: 134, beats: 4, division: 4, guideVoice: true, accentBeats: [0] },
-        { id: 'mga-4', name: 'Chorus', bars: 8, bpm: 142, beats: 4, division: 4, guideVoice: true, accentBeats: [0, 2] },
-        { id: 'mga-5', name: 'Bridge', bars: 4, bpm: 120, beats: 3, division: 4, guideVoice: true, accentBeats: [0] },
-        { id: 'mga-6', name: 'Outro', bars: 4, bpm: 128, beats: 4, division: 4, guideVoice: true, accentBeats: [0] }
-      ]
-    },
-    {
-      id: 'track-sample-3',
-      name: '변속·변박 4마디 루프',
-      loop: true,
-      sections: [
-        { id: 'loop-1', name: 'Verse', bars: 4, bpm: 110, beats: 4, division: 4, guideVoice: true, accentBeats: [0] },
-        { id: 'loop-2', name: 'Chorus', bars: 4, bpm: 130, beats: 4, division: 4, guideVoice: true, accentBeats: [0, 2] }
+        { id: 'st-1', name: 'Ready', bars: 4, bpm: 190, beats: 4, division: 4, guideVoice: true, accentBeats: [0] },
+        { id: 'st-2', name: 'Intro', bars: 14, bpm: 190, beats: 4, division: 4, guideVoice: true, accentBeats: [0] },
+        { id: 'st-3', name: 'Verse', bars: 8, bpm: 190, beats: 4, division: 4, guideVoice: true, accentBeats: [0] },
+        { id: 'st-4', name: 'Pre-Chorus', bars: 8, bpm: 190, beats: 4, division: 4, guideVoice: true, accentBeats: [0] },
+        { id: 'st-5', name: 'Chorus', bars: 16, bpm: 190, beats: 4, division: 4, guideVoice: true, accentBeats: [0, 2] },
+        { id: 'st-6', name: 'Solo', bars: 8, bpm: 190, beats: 4, division: 4, guideVoice: true, accentBeats: [0] },
+        { id: 'st-7', name: 'Verse', bars: 8, bpm: 190, beats: 4, division: 4, guideVoice: true, accentBeats: [0] },
+        { id: 'st-8', name: 'Pre-Chorus', bars: 8, bpm: 190, beats: 4, division: 4, guideVoice: true, accentBeats: [0] },
+        { id: 'st-9', name: 'Chorus', bars: 16, bpm: 190, beats: 4, division: 4, guideVoice: true, accentBeats: [0, 2] },
+        { id: 'st-10', name: 'Bridge', bars: 16, bpm: 190, beats: 4, division: 4, guideVoice: true, accentBeats: [0] },
+        { id: 'st-11', name: 'Solo', bars: 16, bpm: 190, beats: 4, division: 4, guideVoice: true, accentBeats: [0] },
+        { id: 'st-12', name: 'Chorus', bars: 16, bpm: 190, beats: 4, division: 4, guideVoice: true, accentBeats: [0, 2] },
+        { id: 'st-13', name: 'Outro', bars: 18, bpm: 190, beats: 4, division: 4, guideVoice: true, accentBeats: [0] }
       ]
     }
   ];
@@ -126,7 +151,7 @@
   const savedSongs = (() => {
     try {
       const data = JSON.parse(localStorage.getItem(SONGS_KEY));
-      return Array.isArray(data) && data.length > 0 ? data : DEFAULT_SONGS;
+      return Array.isArray(data) && data.length > 0 && data.some((s) => s.id && s.id.startsWith('mga-')) ? data : DEFAULT_SONGS;
     } catch {
       return DEFAULT_SONGS;
     }
@@ -206,7 +231,7 @@
       }
     },
 
-    playClip(key, scheduleTime = null) {
+    playClip(key, scheduleTime = null, bpm = null) {
       if (!this.audioContext) return;
       const lookupKey = String(key || '').toLowerCase().replace(/brigde/i, 'bridge').trim();
       const item = window.VOICE_SPRITE_MAP ? window.VOICE_SPRITE_MAP[lookupKey] : null;
@@ -215,6 +240,10 @@
         try {
           const source = this.audioContext.createBufferSource();
           source.buffer = this.spriteBuffer;
+          // 빠른 BPM(140 초과)에서는 카운트가 다음 박자와 겹치지 않고 또렷하게 맞물리도록 배속 보정
+          if (bpm && bpm > 140 && !isNaN(Number(key))) {
+            source.playbackRate.value = Math.min(1.4, Math.max(1.0, bpm / 135));
+          }
           source.connect(this.voiceGain || this.audioContext.destination);
           const startTime = scheduleTime !== null ? Math.max(scheduleTime, this.audioContext.currentTime) : this.audioContext.currentTime;
           source.start(startTime, item.start, item.duration);
@@ -225,12 +254,14 @@
     },
 
     speakSectionName(name, scheduleTime = null) {
-      const clean = String(name || '').toLowerCase().replace(/brigde/i, 'bridge').replace(/\s+/g, '-').trim();
-      this.playClip(clean, scheduleTime);
+      const clean = String(name || '').toLowerCase().replace(/brigde/i, 'bridge').trim();
+      const baseTitle = ALLOWED_SECTION_TITLES.map((t) => t.toLowerCase().replace(/\s+/g, '-'))
+        .find((t) => clean.startsWith(t)) || clean.replace(/\s+/g, '-');
+      this.playClip(baseTitle, scheduleTime);
     },
 
-    speakCount(number, scheduleTime = null) {
-      this.playClip(String(number), scheduleTime);
+    speakCount(number, scheduleTime = null, bpm = null) {
+      this.playClip(String(number), scheduleTime, bpm);
     },
 
     speakFallback(text) {
@@ -469,15 +500,16 @@
     if (state.audioContext.state === 'suspended') await state.audioContext.resume();
   }
 
-  // 정밀 오디오 클릭음 합성
+  // 정밀 오디오 클릭음 합성 (메트로놈 볼륨 대폭 확대)
   function scheduleClick(time, isAccent) {
     if (state.muted || !state.audioContext) return;
     const osc = state.audioContext.createOscillator();
     const gain = state.audioContext.createGain();
-    osc.frequency.value = isAccent ? 1320 : 880;
+    osc.frequency.value = isAccent ? 1440 : 960;
     osc.type = isAccent ? 'sine' : 'triangle';
     gain.gain.setValueAtTime(0.0001, time);
-    gain.gain.exponentialRampToValueAtTime((state.volume / 100) * (isAccent ? 0.48 : 0.3), time + 0.003);
+    // 메트로놈 클릭 사운드만 볼륨 확대: 액센트 1.0, 일반박 0.85
+    gain.gain.exponentialRampToValueAtTime((state.volume / 100) * (isAccent ? 1.0 : 0.85), time + 0.002);
     gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.058);
     osc.connect(gain).connect(state.audioContext.destination);
     osc.start(time);
@@ -554,14 +586,17 @@
         const isGuideEnabled = Boolean(nextSec && (nextSec.guideVoice !== false));
         const isTwoBarsBeforeName = isGuideEnabled && (barsRemaining === 2) && (beat === 0);
         const isOneBarBeforeCount = isGuideEnabled && (barsRemaining === 1);
+        const isFirstBeatOfSong = (secIdx === 0 && measure === 0 && beat === 0);
 
         // 오디오 스케줄링 (클릭음 및 가이드 보이스를 동일 Web Audio 컨텍스트에서 정밀 재생)
         scheduleClick(noteTime, accent);
 
-        if (isTwoBarsBeforeName && nextSec) {
+        if (isFirstBeatOfSong && curSec.guideVoice !== false && curSec.name.toLowerCase() === 'ready') {
+          VoiceGuide.speakSectionName(curSec.name, noteTime);
+        } else if (isTwoBarsBeforeName && nextSec) {
           VoiceGuide.speakSectionName(nextSec.name, noteTime);
         } else if (isOneBarBeforeCount) {
-          VoiceGuide.speakCount(beat + 1, noteTime);
+          VoiceGuide.speakCount(beat + 1, noteTime, curSec.bpm);
         }
 
         const delay = Math.max(0, (noteTime - state.audioContext.currentTime) * 1000);
@@ -1011,8 +1046,9 @@
       name: name.trim(),
       loop: true,
       sections: [
-        { id: `sec-1-${Date.now()}`, name: 'Intro', bars: 4, bpm: 120, beats: 4, division: 4, guideVoice: true, accentBeats: [0] },
-        { id: `sec-2-${Date.now()}`, name: 'Verse', bars: 8, bpm: 120, beats: 4, division: 4, guideVoice: true, accentBeats: [0] }
+        { id: `sec-1-${Date.now()}`, name: 'Ready', bars: 4, bpm: 120, beats: 4, division: 4, guideVoice: true, accentBeats: [0] },
+        { id: `sec-2-${Date.now()}`, name: 'Intro', bars: 4, bpm: 120, beats: 4, division: 4, guideVoice: true, accentBeats: [0] },
+        { id: `sec-3-${Date.now()}`, name: 'Verse', bars: 8, bpm: 120, beats: 4, division: 4, guideVoice: true, accentBeats: [0] }
       ]
     };
     state.songs.push(newSong);
