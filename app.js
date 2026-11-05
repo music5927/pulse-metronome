@@ -864,9 +864,9 @@
       if (audioCtx) this.audioContext = audioCtx;
       if (this.audioContext && !this.voiceGain) {
         this.voiceGain = this.audioContext.createGain();
-        const vol = (state.options.voiceVolume / 100);
+        const vol = (state.options.voiceVolume / 100) * 1.8;
         this.voiceGain.gain.setValueAtTime(vol, this.audioContext.currentTime);
-        this.voiceGain.connect(this.audioContext.destination);
+        this.voiceGain.connect(state.masterCompressor || this.audioContext.destination);
       }
       if (this.isReady || this.isLoading) return;
       if (typeof window !== 'undefined' && window.VOICE_SPRITE_DATA && this.audioContext) {
@@ -885,7 +885,7 @@
     },
 
     setVolume(percent) {
-      const vol = clamp(Number(percent) || 0, 0, 100) / 100;
+      const vol = (clamp(Number(percent) || 0, 0, 100) / 100) * 1.8;
       if (this.voiceGain && this.audioContext) {
         this.voiceGain.gain.setValueAtTime(vol, this.audioContext.currentTime);
       }
@@ -900,11 +900,9 @@
         try {
           const source = this.audioContext.createBufferSource();
           source.buffer = this.spriteBuffer;
-          // 빠른 BPM(140 초과)에서는 카운트가 다음 박자와 겹치지 않고 또렷하게 맞물리도록 배속 보정
-          if (bpm && bpm > 140 && !isNaN(Number(key))) {
-            source.playbackRate.value = Math.min(1.4, Math.max(1.0, bpm / 135));
-          }
-          source.connect(this.voiceGain || this.audioContext.destination);
+          // 1. 보이스가이드 목소리는 일정하게: playbackRate를 항상 1.0으로 고정하여 자연스럽고 일정한 톤 유지
+          source.playbackRate.value = 1.0;
+          source.connect(this.voiceGain || state.masterCompressor || this.audioContext.destination);
           const startTime = scheduleTime !== null ? Math.max(scheduleTime, this.audioContext.currentTime) : this.audioContext.currentTime;
           source.start(startTime, item.start, item.duration);
         } catch (_) {}
@@ -1155,25 +1153,54 @@
     if (!AudioContextClass) throw new Error('이 브라우저는 Web Audio API를 지원하지 않습니다.');
     configureIosPlayback();
     if (!state.audioContext) state.audioContext = new AudioContextClass({ latencyHint: 'interactive' });
+    // 마스터 컴프레서/리미터 생성 (전반적인 소리 대폭 상승 & 왜곡 방지)
+    if (!state.masterCompressor && state.audioContext) {
+      const comp = state.audioContext.createDynamicsCompressor();
+      comp.threshold.setValueAtTime(-6, state.audioContext.currentTime);
+      comp.knee.setValueAtTime(6, state.audioContext.currentTime);
+      comp.ratio.setValueAtTime(14, state.audioContext.currentTime);
+      comp.attack.setValueAtTime(0.001, state.audioContext.currentTime);
+      comp.release.setValueAtTime(0.06, state.audioContext.currentTime);
+      comp.connect(state.audioContext.destination);
+      state.masterCompressor = comp;
+      if (VoiceGuide.voiceGain) {
+        try { VoiceGuide.voiceGain.disconnect(); VoiceGuide.voiceGain.connect(state.masterCompressor); } catch (_) {}
+      }
+    }
     unlockIosSpeaker();
     await VoiceGuide.init(state.audioContext);
     if (state.audioContext.state === 'suspended') await state.audioContext.resume();
   }
 
-  // 정밀 오디오 클릭음 합성 (메트로놈 볼륨 대폭 확대)
+  // 정밀 오디오 클릭음 합성 (2. 전반적인 볼륨 대폭 상승 & 펀치감 있는 트랜지언트)
   function scheduleClick(time, isAccent) {
     if (state.muted || !state.audioContext) return;
-    const osc = state.audioContext.createOscillator();
-    const gain = state.audioContext.createGain();
-    osc.frequency.value = isAccent ? 1440 : 960;
-    osc.type = isAccent ? 'sine' : 'triangle';
-    gain.gain.setValueAtTime(0.0001, time);
-    // 메트로놈 클릭 사운드만 볼륨 확대: 액센트 1.0, 일반박 0.85
-    gain.gain.exponentialRampToValueAtTime((state.volume / 100) * (isAccent ? 1.0 : 0.85), time + 0.002);
-    gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.058);
-    osc.connect(gain).connect(state.audioContext.destination);
-    osc.start(time);
-    osc.stop(time + 0.064);
+    const dest = state.masterCompressor || state.audioContext.destination;
+    const userVol = (state.volume / 100);
+
+    // 1. 바디 오실레이터 (우드블록 공명감)
+    const oscBody = state.audioContext.createOscillator();
+    const gainBody = state.audioContext.createGain();
+    oscBody.frequency.setValueAtTime(isAccent ? 1680 : 1120, time);
+    oscBody.type = isAccent ? 'sine' : 'triangle';
+    gainBody.gain.setValueAtTime(0.0001, time);
+    gainBody.gain.exponentialRampToValueAtTime(userVol * (isAccent ? 1.7 : 1.35), time + 0.0015);
+    gainBody.gain.exponentialRampToValueAtTime(0.0001, time + 0.048);
+    oscBody.connect(gainBody).connect(dest);
+    oscBody.start(time);
+    oscBody.stop(time + 0.052);
+
+    // 2. 고주파 트랜지언트 클릭 (모바일 스피커에서도 선명하게 꽂히는 타격감)
+    const oscClick = state.audioContext.createOscillator();
+    const gainClick = state.audioContext.createGain();
+    oscClick.type = 'square';
+    oscClick.frequency.setValueAtTime(isAccent ? 3200 : 2400, time);
+    oscClick.frequency.exponentialRampToValueAtTime(600, time + 0.012);
+    gainClick.gain.setValueAtTime(userVol * (isAccent ? 0.75 : 0.55), time);
+    gainClick.gain.exponentialRampToValueAtTime(0.0001, time + 0.014);
+    oscClick.connect(gainClick).connect(dest);
+    oscClick.start(time);
+    oscClick.stop(time + 0.016);
   }
 
   // 박자 시각 효과 렌더링 (전체화면 | 부분화면 | 끄기)
