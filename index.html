@@ -5,9 +5,34 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#10131a" />
   <title>메트로놈</title>
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="apple-touch-icon" href="./icon-192.png" />
+  <link rel="icon" type="image/png" href="./icon-192.png" />
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
+  <!-- 1. 앱 시작 인트로 화면 -->
+  <div id="app-intro-screen" class="app-intro-screen" aria-hidden="true">
+    <div class="intro-content">
+      <img src="./icon-512.png" alt="Pulse 메트로놈 아이콘" class="intro-logo" />
+      <h1 class="intro-title">Pulse</h1>
+      <p class="intro-subtitle">Precision Metronome</p>
+    </div>
+  </div>
+
+  <!-- 2. 인트로 후 3초간 표시되는 테스트 버전 안내 페이지 -->
+  <section id="test-version-notice" class="test-version-notice is-waiting" role="dialog" aria-modal="true" aria-label="테스트 버전 안내">
+    <div class="test-notice-card">
+      <div class="test-notice-badge">⚠️ TEST VERSION</div>
+      <h2 class="test-notice-title">해당 버전은 테스트 버전입니다</h2>
+      <p class="test-notice-desc">테스트를 마치고 나서 정식 발매를 진행할 예정이니 배포하지 말아주세요</p>
+      <div class="test-notice-timer-bar">
+        <div class="test-notice-progress"></div>
+      </div>
+      <button id="btn-close-notice" class="test-notice-btn" type="button">시작하기</button>
+    </div>
+  </section>
+
   <!-- 전체화면 악센트 플래시 오버레이 -->
   <div id="fullscreen-flash" class="fullscreen-flash" aria-hidden="true"></div>
 
@@ -318,6 +343,7 @@
           <button id="btn-submit-logs" class="button-log-submit" type="button">
             📋 로그 제출하기 (최근 1분 복사)
           </button>
+          <p class="app-version">App ver 0.1.0</p>
         </div>
       </div>
     </div>
@@ -349,7 +375,45 @@
     </div>
   </div>
 
+  <script>
+    (() => {
+      const intro = document.getElementById('app-intro-screen');
+      const notice = document.getElementById('test-version-notice');
+      const closeBtn = document.getElementById('btn-close-notice');
+
+      let noticeTimer = null;
+      function dismissNotice() {
+        if (!notice || notice.classList.contains('is-hidden')) return;
+        if (noticeTimer) clearTimeout(noticeTimer);
+        notice.classList.add('is-hidden');
+        setTimeout(() => {
+          notice.style.display = 'none';
+          if (intro) intro.style.display = 'none';
+        }, 360);
+      }
+
+      if (closeBtn) closeBtn.addEventListener('click', dismissNotice);
+
+      // 1. 앱 켜지고 인트로 화면 약 1.2초 표시
+      setTimeout(() => {
+        if (intro) intro.classList.add('fade-out');
+        if (notice) {
+          notice.classList.remove('is-waiting');
+          notice.classList.add('is-active');
+          // 2. 인트로 화면 보이고 난 뒤 3초 정도 테스트 버전 안내 표시
+          noticeTimer = setTimeout(dismissNotice, 3000);
+        }
+      }, 1200);
+    })();
+  </script>
   <script src="./voice-data.js"></script>
   <script src="./app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      });
+    }
+  </script>
 </body>
 </html>

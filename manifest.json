@@ -1,0 +1,24 @@
+{
+  "name": "Pulse 전자 메트로놈",
+  "short_name": "Pulse",
+  "description": "고정밀 Web Audio 기반 메트로놈 및 트랙 시퀀서",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#12151c",
+  "theme_color": "#65cfff",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

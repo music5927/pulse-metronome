@@ -20,6 +20,55 @@ button, input, select { font: inherit; }
 button { cursor: pointer; }
 button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid rgba(255,192,107,.82); outline-offset: 3px; }
 
+/* 앱 시작 인트로 화면 */
+.app-intro-screen {
+  position: fixed; inset: 0; z-index: 10002; display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(circle at 50% 40%, #1c2333 0%, #0d1017 100%);
+  opacity: 1; visibility: visible; transition: opacity .4s ease, visibility .4s ease;
+}
+.app-intro-screen.fade-out { opacity: 0; visibility: hidden; pointer-events: none; }
+.intro-content { display: flex; flex-direction: column; align-items: center; gap: 10px; animation: introPop .55s cubic-bezier(.16, 1, .3, 1) backwards; }
+@keyframes introPop { 0% { transform: scale(.84); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+.intro-logo { width: min(38vw, 150px); height: min(38vw, 150px); object-fit: contain; filter: drop-shadow(0 12px 28px rgba(255, 128, 95, .42)); }
+.intro-title { margin: 0; font-size: clamp(1.8rem, 6vw, 2.3rem); font-weight: 850; letter-spacing: -.02em; color: #fff; }
+.intro-subtitle { margin: 0; font-size: .8rem; color: #ff805f; letter-spacing: .15em; text-transform: uppercase; font-weight: 750; }
+
+/* 인트로 후 3초간 표시하는 테스트 버전 안내 */
+.test-version-notice {
+  position: fixed; inset: 0; z-index: 10001; display: flex; align-items: center; justify-content: center;
+  padding: 24px; background: rgba(10, 13, 20, .88); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  opacity: 1; visibility: visible; transition: opacity .35s ease, visibility .35s ease;
+}
+.test-version-notice.is-waiting { opacity: 0; visibility: hidden; pointer-events: none; }
+.test-version-notice.is-hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+.test-notice-card {
+  width: min(100%, 380px); padding: 28px 22px 20px;
+  background: linear-gradient(180deg, #1d2332 0%, #141824 100%);
+  border: 1px solid rgba(255, 128, 95, .35); border-radius: 20px;
+  box-shadow: 0 24px 60px rgba(0,0,0,.7), 0 0 40px rgba(255, 128, 95, .15);
+  display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px;
+  animation: cardRise .35s cubic-bezier(.16, 1, .3, 1) backwards;
+}
+@keyframes cardRise { 0% { transform: translateY(14px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+.test-notice-badge {
+  display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 999px;
+  background: rgba(255, 128, 95, .15); border: 1px solid rgba(255, 128, 95, .4);
+  color: #ff805f; font-size: .72rem; font-weight: 800; letter-spacing: .08em;
+}
+.test-notice-title { margin: 0; font-size: clamp(1.05rem, 4.4vw, 1.25rem); font-weight: 800; color: #fff; line-height: 1.45; word-break: keep-all; }
+.test-notice-desc { margin: 0; font-size: clamp(.84rem, 3.6vw, .95rem); font-weight: 500; color: #a4b7d1; line-height: 1.55; word-break: keep-all; }
+.test-notice-timer-bar { width: 100%; height: 4px; background: rgba(255,255,255,.1); border-radius: 2px; overflow: hidden; margin: 6px 0 2px; }
+.test-notice-progress { width: 100%; height: 100%; background: linear-gradient(90deg, #ff805f, #ffc06b); transform-origin: left; }
+.test-version-notice.is-active .test-notice-progress { animation: noticeTimer 3s linear forwards; }
+@keyframes noticeTimer { 0% { transform: scaleX(1); } 100% { transform: scaleX(0); } }
+.test-notice-btn {
+  margin-top: 4px; padding: 7px 20px; background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.16); border-radius: 999px;
+  color: #d8e2f0; font-size: .8rem; font-weight: 650; cursor: pointer; transition: all .2s ease;
+}
+.test-notice-btn:hover { background: rgba(255,255,255,.16); color: #fff; }
+.app-version { margin: 10px 0 0; text-align: center; color: var(--muted); font-size: .78rem; font-weight: 750; letter-spacing: .05em; }
+
 /* 전체화면 악센트 플래시 오버레이 */
 .fullscreen-flash {
   position: fixed; inset: 0; pointer-events: none; z-index: 9999;
@@ -294,8 +343,8 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   position: absolute; inset: 0; background: rgba(0,0,0,.68); backdrop-filter: blur(4px);
 }
 .options-modal-card {
-  position: relative; width: min(100%, 410px); background: #1a1e28;
-  border: 1px solid var(--line-strong); border-radius: 18px; box-shadow: 0 20px 50px rgba(0,0,0,.55);
+  position: relative; width: min(100%, 410px); max-height: calc(100dvh - 28px); display: flex; flex-direction: column;
+  background: #1a1e28; border: 1px solid var(--line-strong); border-radius: 18px; box-shadow: 0 20px 50px rgba(0,0,0,.55);
   overflow: hidden; animation: popIn .18s ease-out;
 }
 @keyframes popIn {
@@ -314,7 +363,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 }
 .square-close-btn:hover { color: var(--ink); background: var(--surface-hover); }
 
-.options-modal-body { padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 16px; }
+.options-modal-body { min-height: 0; overflow-y: auto; padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 16px; }
 .opt-group { display: flex; flex-direction: column; gap: 5px; }
 .opt-label-row { display: flex; align-items: center; justify-content: space-between; }
 .opt-group-label { font-size: .78rem; font-weight: 850; color: var(--accent-bright); }

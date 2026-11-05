@@ -59,7 +59,7 @@
   };
 
   const SETTINGS_KEY = 'pulse-metronome-settings-v10';
-  const SONGS_KEY = 'pulse-metronome-songs-v10';
+  const SONGS_KEY = 'pulse-metronome-songs-v12';
   const SCHEDULE_AHEAD_SECONDS = 0.12;
   const LOOKAHEAD_MS = 25;
   const SILENT_WAV = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQQAAAAA';
@@ -70,6 +70,8 @@
     localStorage.removeItem('pulse-metronome-songs-v7');
     localStorage.removeItem('pulse-metronome-songs-v8');
     localStorage.removeItem('pulse-metronome-songs-v9');
+    localStorage.removeItem('pulse-metronome-songs-v10');
+    localStorage.removeItem('pulse-metronome-songs-v11');
     localStorage.removeItem('pulse-metronome-songs');
   } catch (_) {}
 
@@ -104,6 +106,16 @@
     "name": "HEBE - Parade",
     "loop": true,
     "sections": [
+      {
+        "id": "hb-ready",
+        "name": "Ready",
+        "bars": 4,
+        "bpm": 94,
+        "beats": 4,
+        "division": 4,
+        "guideVoice": true,
+        "accentBeats": [0]
+      },
       {
         "id": "hb-1",
         "name": "Intro",
@@ -811,7 +823,13 @@
   const savedSongs = (() => {
     try {
       const data = JSON.parse(localStorage.getItem(SONGS_KEY));
-      return Array.isArray(data) && data.length > 0 && data.some((s) => s.id && (s.id === 'hebe-parade' || s.id === 'mga-start')) ? data : DEFAULT_SONGS;
+      if (Array.isArray(data) && data.length > 0) {
+        const hebe = data.find((s) => s.id === 'hebe-parade');
+        if (hebe && Array.isArray(hebe.sections) && hebe.sections[0]?.name === 'Ready') {
+          return data;
+        }
+      }
+      return DEFAULT_SONGS;
     } catch {
       return DEFAULT_SONGS;
     }
