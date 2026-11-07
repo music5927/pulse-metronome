@@ -65,7 +65,9 @@
     batchEditorBackdrop: $('batch-editor-backdrop'),
     batchBtnClose: $('batch-btn-close'),
     batchBars: $('batch-bars'),
+    btnBatchBarsKeep: $('btn-batch-bars-keep'),
     batchBpm: $('batch-bpm'),
+    btnBatchBpmKeep: $('btn-batch-bpm-keep'),
     batchBeats: $('batch-beats'),
     batchDivision: $('batch-division'),
     batchGuideVoice: $('batch-guide-voice'),
@@ -906,6 +908,7 @@
     editingSectionIndex: null,
     edAccents: [0],
     batchAccents: [0],
+    batchAccentsKeep: true,
     lastScrolledSectionIndex: null
   };
 
@@ -1726,14 +1729,51 @@
   // 4, 5, 6. 전체 마디 구간 일괄 수정
   function renderBatchAccents(beats) {
     elements.batchAccentControls.replaceChildren();
-    for (let b = 0; b < beats; b += 1) {
-      const selected = state.batchAccents.includes(b);
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = `ed-accent-beat${selected ? ' selected' : ''}`;
-      btn.textContent = `${b + 1}박`;
-      btn.dataset.beat = String(b);
-      elements.batchAccentControls.append(btn);
+    // '변경 없음' 버튼 추가
+    const keepBtn = document.createElement('button');
+    keepBtn.type = 'button';
+    keepBtn.className = `ed-accent-beat keep-btn${state.batchAccentsKeep ? ' selected' : ''}`;
+    keepBtn.textContent = '변경 없음 (기존 유지)';
+    keepBtn.dataset.beat = 'keep';
+    elements.batchAccentControls.append(keepBtn);
+
+    const numBeats = Number(beats);
+    if (!isNaN(numBeats) && numBeats >= 2 && numBeats <= 31) {
+      for (let b = 0; b < numBeats; b += 1) {
+        const selected = !state.batchAccentsKeep && state.batchAccents.includes(b);
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `ed-accent-beat${selected ? ' selected' : ''}`;
+        btn.textContent = `${b + 1}박`;
+        btn.dataset.beat = String(b);
+        elements.batchAccentControls.append(btn);
+      }
+    }
+  }
+
+  function setBatchFieldKeep(field, keep) {
+    if (field === 'bars') {
+      elements.btnBatchBarsKeep.classList.toggle('active', keep);
+      elements.batchBars.disabled = keep;
+      if (keep) {
+        elements.batchBars.value = '';
+        elements.batchBars.placeholder = '변경 없음';
+      } else {
+        const base = getActiveSong()?.sections[state.currentSectionIndex]?.bars || 4;
+        elements.batchBars.value = elements.batchBars.value || base;
+        elements.batchBars.focus();
+      }
+    } else if (field === 'bpm') {
+      elements.btnBatchBpmKeep.classList.toggle('active', keep);
+      elements.batchBpm.disabled = keep;
+      if (keep) {
+        elements.batchBpm.value = '';
+        elements.batchBpm.placeholder = '변경 없음';
+      } else {
+        const base = getActiveSong()?.sections[state.currentSectionIndex]?.bpm || 120;
+        elements.batchBpm.value = elements.batchBpm.value || base;
+        elements.batchBpm.focus();
+      }
     }
   }
 
@@ -1743,14 +1783,16 @@
       setStatus('일괄 수정할 마디 구간이 없습니다.');
       return;
     }
-    const baseSec = song.sections[state.currentSectionIndex] || song.sections[0];
-    elements.batchBars.value = baseSec.bars || 4;
-    elements.batchBpm.value = baseSec.bpm || 120;
-    elements.batchBeats.value = String(clamp(Number(baseSec.beats) || 4, 2, 31));
-    elements.batchDivision.value = String([2, 4, 8, 16, 32].includes(Number(baseSec.division)) ? Number(baseSec.division) : 4);
-    elements.batchGuideVoice.checked = baseSec.guideVoice !== false;
-    state.batchAccents = normaliseAccents(baseSec.accentBeats, Number(elements.batchBeats.value));
-    renderBatchAccents(Number(elements.batchBeats.value));
+    // 기본적으로 모든 항목을 '변경 없음' 상태로 안전하게 시작
+    setBatchFieldKeep('bars', true);
+    setBatchFieldKeep('bpm', true);
+    elements.batchBeats.value = 'keep';
+    elements.batchDivision.value = 'keep';
+    elements.batchGuideVoice.value = 'keep';
+    state.batchAccentsKeep = true;
+    state.batchAccents = [];
+    renderBatchAccents('keep');
+
     elements.batchEditorModal.classList.remove('hidden');
     addLog('BATCH_EDITOR_OPEN', { songId: song.id, songName: song.name, sectionCount: song.sections.length });
   }
@@ -1765,20 +1807,43 @@
       closeBatchEditor();
       return;
     }
-    const bars = clamp(Math.round(Number(elements.batchBars.value) || 4), 1, 999);
-    const bpm = clamp(Math.round(Number(elements.batchBpm.value) || 120), 30, 400);
-    const beats = clamp(Math.round(Number(elements.batchBeats.value) || 4), 2, 31);
-    const division = [2, 4, 8, 16, 32].includes(Number(elements.batchDivision.value)) ? Number(elements.batchDivision.value) : 4;
-    const guideVoice = elements.batchGuideVoice.checked;
-    const accentBeats = normaliseAccents(state.batchAccents, beats);
+
+    const keepBars = elements.btnBatchBarsKeep.classList.contains('active') || !elements.batchBars.value.trim();
+    const keepBpm = elements.btnBatchBpmKeep.classList.contains('active') || !elements.batchBpm.value.trim();
+    const keepBeats = elements.batchBeats.value === 'keep';
+    const keepDivision = elements.batchDivision.value === 'keep';
+    const keepGuide = elements.batchGuideVoice.value === 'keep';
+    const keepAccents = state.batchAccentsKeep === true;
+
+    const newBars = keepBars ? null : clamp(Math.round(Number(elements.batchBars.value) || 4), 1, 999);
+    const newBpm = keepBpm ? null : clamp(Math.round(Number(elements.batchBpm.value) || 120), 30, 400);
+    const newBeats = keepBeats ? null : clamp(Math.round(Number(elements.batchBeats.value) || 4), 2, 31);
+    const newDivision = keepDivision ? null : ([2, 4, 8, 16, 32].includes(Number(elements.batchDivision.value)) ? Number(elements.batchDivision.value) : 4);
+    const newGuide = keepGuide ? null : (elements.batchGuideVoice.value === 'on');
+    const newAccents = keepAccents ? null : state.batchAccents;
+
+    let changesSummary = [];
+    if (!keepBars) changesSummary.push(`마디:${newBars}`);
+    if (!keepBpm) changesSummary.push(`BPM:${newBpm}`);
+    if (!keepBeats) changesSummary.push(`박자:${newBeats}`);
+    if (!keepDivision) changesSummary.push(`음표:/${newDivision}`);
+    if (!keepGuide) changesSummary.push(`보이스:${newGuide ? 'ON' : 'OFF'}`);
+    if (!keepAccents) changesSummary.push(`강박:${newAccents.map((b) => b + 1 + '박').join(',')}`);
 
     song.sections.forEach((sec) => {
-      sec.bars = bars;
-      sec.bpm = bpm;
-      sec.beats = beats;
-      sec.division = division;
-      sec.guideVoice = guideVoice;
-      sec.accentBeats = [...accentBeats];
+      if (!keepBars && newBars !== null) sec.bars = newBars;
+      if (!keepBpm && newBpm !== null) sec.bpm = newBpm;
+      if (!keepBeats && newBeats !== null) {
+        sec.beats = newBeats;
+        if (keepAccents) {
+          sec.accentBeats = normaliseAccents(sec.accentBeats, newBeats);
+        }
+      }
+      if (!keepDivision && newDivision !== null) sec.division = newDivision;
+      if (!keepGuide && newGuide !== null) sec.guideVoice = newGuide;
+      if (!keepAccents && newAccents !== null) {
+        sec.accentBeats = normaliseAccents(newAccents, sec.beats);
+      }
     });
 
     persistSongs();
@@ -1786,11 +1851,14 @@
     renderSectionsTimeline();
     persistPlaybackPosition();
     closeBatchEditor();
-    setStatus(`전체 ${song.sections.length}개 구간 일괄 수정 완료`);
+
+    const desc = changesSummary.length ? changesSummary.join(', ') : '변경 사항 없음 (기존 유지)';
+    setStatus(`전체 구간 일괄 적용 완료 (${desc})`);
     addLog('BATCH_SECTIONS_UPDATE', {
       songId: song.id,
       count: song.sections.length,
-      bars, bpm, beats, division, guideVoice, accentBeats
+      keep: { bars: keepBars, bpm: keepBpm, beats: keepBeats, division: keepDivision, guide: keepGuide, accents: keepAccents },
+      changes: { newBars, newBpm, newBeats, newDivision, newGuide, newAccents }
     });
   }
 
@@ -2252,20 +2320,56 @@
   elements.batchBtnCancel?.addEventListener('click', closeBatchEditor);
   elements.batchBtnSave?.addEventListener('click', saveBatchEditor);
 
+  elements.btnBatchBarsKeep?.addEventListener('click', () => {
+    const isNowKeep = !elements.btnBatchBarsKeep.classList.contains('active');
+    setBatchFieldKeep('bars', isNowKeep);
+  });
+  elements.batchBars?.addEventListener('input', () => {
+    if (elements.batchBars.value.trim()) {
+      elements.btnBatchBarsKeep.classList.remove('active');
+      elements.batchBars.disabled = false;
+    }
+  });
+
+  elements.btnBatchBpmKeep?.addEventListener('click', () => {
+    const isNowKeep = !elements.btnBatchBpmKeep.classList.contains('active');
+    setBatchFieldKeep('bpm', isNowKeep);
+  });
+  elements.batchBpm?.addEventListener('input', () => {
+    if (elements.batchBpm.value.trim()) {
+      elements.btnBatchBpmKeep.classList.remove('active');
+      elements.batchBpm.disabled = false;
+    }
+  });
+
   elements.batchBeats?.addEventListener('change', (e) => {
-    const b = Number(e.target.value);
-    state.batchAccents = normaliseAccents(state.batchAccents, b);
-    renderBatchAccents(b);
+    const val = e.target.value;
+    if (val === 'keep') {
+      state.batchAccentsKeep = true;
+      state.batchAccents = [];
+      renderBatchAccents('keep');
+    } else {
+      state.batchAccentsKeep = false;
+      state.batchAccents = [0];
+      renderBatchAccents(Number(val));
+    }
   });
 
   elements.batchAccentControls?.addEventListener('click', (e) => {
     const btn = e.target.closest('.ed-accent-beat');
     if (!btn) return;
+    if (btn.dataset.beat === 'keep') {
+      state.batchAccentsKeep = true;
+      state.batchAccents = [];
+      renderBatchAccents(elements.batchBeats.value);
+      return;
+    }
+    state.batchAccentsKeep = false;
     const b = Number(btn.dataset.beat);
     state.batchAccents = state.batchAccents.includes(b)
       ? state.batchAccents.filter((x) => x !== b)
       : [...state.batchAccents, b].sort((x, y) => x - y);
-    renderBatchAccents(Number(elements.batchBeats.value));
+    renderBatchAccents(elements.batchBeats.value);
   });
 
   // 키보드 스페이스바 재생/정지

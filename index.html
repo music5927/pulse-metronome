@@ -349,7 +349,7 @@
           <button id="btn-submit-logs" class="button-log-submit" type="button">
             📋 로그 제출하기 (최근 1분 복사)
           </button>
-          <p class="app-version">App ver 0.2.0</p>
+          <p class="app-version">App ver 0.2.1</p>
         </div>
       </div>
     </div>
@@ -403,17 +403,26 @@
       <div class="editor-body">
         <div class="editor-row">
           <label class="editor-field">
-            <span>마디 수</span>
-            <input id="batch-bars" type="number" min="1" max="999" value="4" />
+            <div class="field-label-row">
+              <span>마디 수</span>
+              <button type="button" id="btn-batch-bars-keep" class="pill-keep-btn active" title="마디 수 변경 안 함">변경 없음</button>
+            </div>
+            <input id="batch-bars" type="number" min="1" max="999" placeholder="변경 없음" value="" disabled />
           </label>
           <label class="editor-field">
-            <span>BPM (속도)</span>
-            <input id="batch-bpm" type="number" min="30" max="400" value="120" />
+            <div class="field-label-row">
+              <span>BPM (속도)</span>
+              <button type="button" id="btn-batch-bpm-keep" class="pill-keep-btn active" title="BPM 변경 안 함">변경 없음</button>
+            </div>
+            <input id="batch-bpm" type="number" min="30" max="400" placeholder="변경 없음" value="" disabled />
           </label>
           <label class="editor-field">
-            <span>박자 (2~31)</span>
+            <div class="field-label-row">
+              <span>박자 (2~31)</span>
+            </div>
             <select id="batch-beats">
-              <option value="2">2</option><option value="3">3</option><option value="4" selected>4</option>
+              <option value="keep" selected>변경 없음</option>
+              <option value="2">2</option><option value="3">3</option><option value="4">4</option>
               <option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
               <option value="9">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option>
               <option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option>
@@ -424,10 +433,13 @@
             </select>
           </label>
           <label class="editor-field">
-            <span>음표 단위</span>
+            <div class="field-label-row">
+              <span>음표 단위</span>
+            </div>
             <select id="batch-division">
+              <option value="keep" selected>변경 없음</option>
               <option value="2">/ 2</option>
-              <option value="4" selected>/ 4</option>
+              <option value="4">/ 4</option>
               <option value="8">/ 8</option>
               <option value="16">/ 16</option>
               <option value="32">/ 32</option>
@@ -435,13 +447,21 @@
           </label>
         </div>
 
-        <label class="editor-checkbox-field">
-          <input type="checkbox" id="batch-guide-voice" checked />
-          <span>가이드 보이스 안내 (2마디 전 파트명, 1마디 전 카운트)</span>
+        <label class="editor-field" style="margin-top: 2px;">
+          <div class="field-label-row">
+            <span>가이드 보이스 안내</span>
+          </div>
+          <select id="batch-guide-voice">
+            <option value="keep" selected>변경 없음 (기존 설정 유지)</option>
+            <option value="on">보이스 ON (2마디 전 파트명, 1마디 전 카운트)</option>
+            <option value="off">보이스 OFF (음성 끔)</option>
+          </select>
         </label>
 
         <div class="editor-field">
-          <span>강박 설정</span>
+          <div class="field-label-row">
+            <span>강박 설정</span>
+          </div>
           <div id="batch-accent-controls" class="ed-accent-controls"></div>
         </div>
         <div class="editor-actions">

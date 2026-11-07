@@ -1,6 +1,6 @@
 {
   "name": "Pulse 전자 메트로놈",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "short_name": "Pulse",
   "description": "고정밀 Web Audio 기반 메트로놈 및 트랙 시퀀서",
   "start_url": "./index.html",

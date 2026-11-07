@@ -374,6 +374,31 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   font-weight: 850;
 }
 
+.field-label-row {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;
+}
+.pill-keep-btn {
+  border: 1px solid var(--line); border-radius: 999px;
+  background: rgba(255,255,255,.05); color: var(--muted);
+  font-size: .56rem; font-weight: 800; padding: 1px 5px; cursor: pointer; transition: all .12s ease;
+}
+.pill-keep-btn:hover {
+  background: rgba(255,255,255,.1); color: var(--ink);
+}
+.pill-keep-btn.active {
+  background: rgba(255,192,107,.18); color: var(--accent-bright);
+  border-color: rgba(255,192,107,.45);
+}
+.ed-accent-beat.keep-btn {
+  width: auto; padding: 0 8px; font-size: .62rem;
+}
+.ed-accent-beat.keep-btn.selected {
+  background: var(--accent-bright); color: #472014; font-weight: 900;
+}
+.batch-modal-card select option[value="keep"] {
+  color: var(--accent-bright); font-weight: 850;
+}
+
 /* [일괄 수정 모달] */
 .batch-modal {
   position: fixed; inset: 0; z-index: 1010; display: grid; place-items: center; padding: 14px;
