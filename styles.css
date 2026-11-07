@@ -110,6 +110,8 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   display: grid; place-items: center; transition: all .12s ease;
 }
 .square-opt-button:hover { background: var(--surface-hover); border-color: rgba(255,192,107,.5); }
+.header-right, .options-header-actions { display: flex; align-items: center; gap: 7px; }
+.guide-help-button { font-family: inherit; font-weight: 900; color: var(--accent-bright); }
 
 .hidden { display: none !important; }
 
@@ -435,6 +437,36 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .modal-btn-row button { flex: 1; height: 38px; font-size: .84rem; font-weight: 800; border-radius: 8px; }
 .modal-cancel-btn { background: var(--surface-subtle); color: var(--muted); border: 1px solid var(--line); }
 .modal-cancel-btn:hover { background: var(--surface-hover); color: var(--ink); }
+
+/* [탭별 사용 가이드 모달] */
+.guide-modal {
+  position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center; padding: 10px;
+}
+.guide-modal-backdrop { position: absolute; inset: 0; background: rgba(3, 6, 12, .82); backdrop-filter: blur(5px); }
+.guide-modal-card {
+  position: relative; z-index: 1; width: min(100%, 430px); max-height: calc(100dvh - 20px);
+  overflow: hidden; display: flex; flex-direction: column; background: #171d29;
+  border: 1px solid rgba(255,192,107,.45); border-radius: 18px; box-shadow: 0 22px 70px rgba(0,0,0,.72);
+  animation: popIn .18s ease-out;
+}
+.guide-modal-header {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 13px; border-bottom: 1px solid var(--line); background: rgba(0,0,0,.22);
+}
+.guide-step-label { margin: 0 0 2px; color: var(--accent-bright); font-size: .65rem; font-weight: 900; letter-spacing: .07em; }
+.guide-modal-title { margin: 0; color: var(--ink); font-size: .9rem; font-weight: 850; }
+.guide-image-wrap { min-height: 0; flex: 1; overflow-y: auto; background: #070a10; }
+.guide-image-wrap img { display: block; width: 100%; height: auto; }
+.guide-modal-footer {
+  display: flex; justify-content: space-between; gap: 10px; padding: 10px 13px;
+  border-top: 1px solid var(--line); background: rgba(0,0,0,.22);
+}
+.guide-nav-button { min-width: 92px; height: 38px; padding: 0 16px; border-radius: 9px; font: inherit; font-size: .82rem; font-weight: 850; }
+.guide-nav-button:disabled { opacity: .35; cursor: default; }
+.guide-nav-secondary { color: var(--ink); border: 1px solid var(--line); background: var(--surface-subtle); }
+.guide-nav-primary { margin-left: auto; color: #24140b; border: 1px solid rgba(255,192,107,.6); background: var(--accent-bright); }
+.guide-nav-secondary:not(:disabled):hover { background: var(--surface-hover); }
+.guide-nav-primary:hover { filter: brightness(1.06); }
 
 @media (max-width: 420px) {
   .app-header, .tempo-panel, .beat-settings-panel, .song-preset-panel, .song-monitor-panel, .sections-timeline-panel, .controls { padding-left: 10px; padding-right: 10px; }

@@ -43,6 +43,9 @@
         <p id="status" class="status" aria-live="polite">준비됨</p>
       </div>
       <div class="header-right">
+        <button id="btn-open-guide" class="square-opt-button guide-help-button" type="button" aria-label="현재 탭 사용 가이드" title="현재 탭 가이드">
+          ?
+        </button>
         <button id="btn-open-options" class="square-opt-button" type="button" aria-label="옵션 메뉴" title="설정 & 옵션">
           ⚙️
         </button>
@@ -291,7 +294,10 @@
     <div class="options-modal-card">
       <div class="options-modal-header">
         <h2 id="opt-modal-title" class="options-modal-title">설정 & 옵션</h2>
-        <button id="btn-close-options" class="square-close-btn" type="button" aria-label="옵션 닫기">×</button>
+        <div class="options-header-actions">
+          <button id="btn-open-options-guide" class="square-close-btn guide-help-button" type="button" aria-label="설정 사용 가이드" title="설정 가이드">?</button>
+          <button id="btn-close-options" class="square-close-btn" type="button" aria-label="옵션 닫기">×</button>
+        </div>
       </div>
       <div class="options-modal-body">
         <!-- 악센트 표시방법 설정 -->
@@ -357,6 +363,27 @@
       <p class="alert-sub">최근 1분간의 메트로놈 로그가 클립보드에 복사되었습니다.<br>이메일에 붙여넣기하여 전송해 주세요.</p>
       <button id="btn-alert-close" class="button-primary alert-confirm-btn" type="button">확인</button>
     </div>
+  </div>
+
+  <!-- [앱 내 탭별 사용 가이드] -->
+  <div id="guide-modal" class="guide-modal hidden" role="dialog" aria-modal="true" aria-labelledby="guide-title">
+    <div id="guide-backdrop" class="guide-modal-backdrop"></div>
+    <section class="guide-modal-card">
+      <header class="guide-modal-header">
+        <div>
+          <p id="guide-step-label" class="guide-step-label">STEP 1 / 4</p>
+          <h2 id="guide-title" class="guide-modal-title">기본 메트로놈 가이드</h2>
+        </div>
+        <button id="btn-close-guide" class="square-close-btn" type="button" aria-label="가이드 닫기">×</button>
+      </header>
+      <div class="guide-image-wrap">
+        <img id="guide-image" src="" alt="현재 기능 사용 가이드" />
+      </div>
+      <footer class="guide-modal-footer">
+        <button id="btn-guide-prev" class="guide-nav-button guide-nav-secondary" type="button">이전</button>
+        <button id="btn-guide-next" class="guide-nav-button guide-nav-primary" type="button">다음 단계</button>
+      </footer>
+    </section>
   </div>
 
   <!-- [전체 마디 이동 모달] -->

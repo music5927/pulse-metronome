@@ -9,8 +9,8 @@
     viewTrackTop: $('view-track-top'),
     viewTrackSections: $('view-track-sections'),
     status: $('status'),
-    // 상단 옵션 버튼
-    btnOpenOptions: $('btn-open-options'),
+    // 상단 옵션 및 탭별 가이드 버튼
+    btnOpenOptions: $('btn-open-options'), btnOpenGuide: $('btn-open-guide'),
     // 전체화면 악센트 플래시
     fullscreenFlash: $('fullscreen-flash'),
     // 공통 박자 시각화
@@ -42,7 +42,11 @@
     mute: $('mute-button'), soundIcon: $('sound-icon'), soundLabel: $('sound-label'),
     // 옵션 메뉴 모달
     optionsModal: $('options-modal'), optionsBackdrop: $('options-backdrop'),
-    btnCloseOptions: $('btn-close-options'), btnSubmitLogs: $('btn-submit-logs'),
+    btnCloseOptions: $('btn-close-options'), btnOpenOptionsGuide: $('btn-open-options-guide'), btnSubmitLogs: $('btn-submit-logs'),
+    // 탭별 가이드 모달
+    guideModal: $('guide-modal'), guideBackdrop: $('guide-backdrop'), guideImage: $('guide-image'),
+    guideTitle: $('guide-title'), guideStepLabel: $('guide-step-label'), btnCloseGuide: $('btn-close-guide'),
+    btnGuidePrev: $('btn-guide-prev'), btnGuideNext: $('btn-guide-next'),
     accentRadios: document.querySelectorAll('input[name="accent-visual"]'),
     voiceVolumeSlider: $('voice-volume-slider'),
     voiceVolumeDisplay: $('voice-volume-display'),
@@ -63,6 +67,34 @@
   const SCHEDULE_AHEAD_SECONDS = 0.12;
   const LOOKAHEAD_MS = 25;
   const SILENT_WAV = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQQAAAAA';
+
+  // 탭별 가이드: 현재 화면에서 관련 이미지 그룹만 순서대로 제공합니다.
+  const GUIDE_SETS = {
+    single: {
+      title: '기본 메트로놈 가이드',
+      files: [
+        'guide_images/step_guide_01_tempo.jpg',
+        'guide_images/step_guide_02_meter_division.jpg',
+        'guide_images/step_guide_03_accent.jpg',
+        'guide_images/step_guide_04_tap_play.jpg'
+      ]
+    },
+    song: {
+      title: '트랙 메트로놈 가이드',
+      files: [
+        'guide_images/step_guide_05_track_presets.jpg',
+        'guide_images/step_guide_06_sections_voice.jpg'
+      ]
+    },
+    options: {
+      title: '설정 & 옵션 가이드',
+      files: [
+        'guide_images/step_guide_07_accent_visual.jpg',
+        'guide_images/step_guide_08_voice_volume_log.jpg'
+      ]
+    }
+  };
+  const guideState = { scope: 'single', index: 0 };
 
   // 구버전 로컬스토리지 정리
   try {
@@ -1616,6 +1648,47 @@
     renderSectionsTimeline();
   }
 
+  // 탭별 사용 가이드: 기본(4), 트랙(2), 설정(2)만 각각 노출합니다.
+  function renderGuide() {
+    const set = GUIDE_SETS[guideState.scope];
+    if (!set) return;
+    const total = set.files.length;
+    const index = clamp(guideState.index, 0, total - 1);
+    guideState.index = index;
+    elements.guideTitle.textContent = set.title;
+    elements.guideStepLabel.textContent = `STEP ${index + 1} / ${total}`;
+    elements.guideImage.src = set.files[index];
+    elements.guideImage.alt = `${set.title} ${index + 1}단계`;
+    elements.btnGuidePrev.disabled = index === 0;
+    elements.btnGuideNext.textContent = index === total - 1 ? '완료' : '다음 단계';
+  }
+
+  function openGuide(scope = state.mode) {
+    if (!GUIDE_SETS[scope]) return;
+    guideState.scope = scope;
+    guideState.index = 0;
+    renderGuide();
+    elements.guideModal.classList.remove('hidden');
+    addLog('GUIDE_OPEN', { scope });
+  }
+
+  function closeGuide() {
+    if (elements.guideModal.classList.contains('hidden')) return;
+    elements.guideModal.classList.add('hidden');
+    addLog('GUIDE_CLOSE', { scope: guideState.scope });
+  }
+
+  function moveGuide(step) {
+    const total = GUIDE_SETS[guideState.scope].files.length;
+    const next = guideState.index + step;
+    if (next >= total) {
+      closeGuide();
+      return;
+    }
+    guideState.index = clamp(next, 0, total - 1);
+    renderGuide();
+  }
+
   // 옵션 모달 및 악센트 표시방법 & 볼륨 조작
   function openOptionsModal() {
     elements.accentRadios.forEach((r) => {
@@ -1710,10 +1783,16 @@
     if (wasPlaying) start();
   });
 
-  // 옵션 모달 리스너
+  // 옵션 및 탭별 가이드 리스너
   elements.btnOpenOptions.addEventListener('click', openOptionsModal);
   elements.btnCloseOptions.addEventListener('click', closeOptionsModal);
   elements.optionsBackdrop.addEventListener('click', closeOptionsModal);
+  elements.btnOpenGuide.addEventListener('click', () => openGuide(state.mode));
+  elements.btnOpenOptionsGuide.addEventListener('click', () => openGuide('options'));
+  elements.btnCloseGuide.addEventListener('click', closeGuide);
+  elements.guideBackdrop.addEventListener('click', closeGuide);
+  elements.btnGuidePrev.addEventListener('click', () => moveGuide(-1));
+  elements.btnGuideNext.addEventListener('click', () => moveGuide(1));
 
   elements.accentRadios.forEach((radio) => {
     radio.addEventListener('change', (e) => {
