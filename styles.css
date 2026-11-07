@@ -395,6 +395,9 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .ed-accent-beat.keep-btn.selected {
   background: var(--accent-bright); color: #472014; font-weight: 900;
 }
+.batch-modal-card .ed-accent-controls {
+  max-height: 68px;
+}
 .batch-modal-card select option[value="keep"] {
   color: var(--accent-bright); font-weight: 850;
 }

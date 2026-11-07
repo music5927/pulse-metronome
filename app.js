@@ -1727,6 +1727,20 @@
   }
 
   // 4, 5, 6. 전체 마디 구간 일괄 수정
+  function resolveBatchBeatsCount(beats) {
+    const num = Number(beats);
+    if (!isNaN(num) && num >= 2 && num <= 31) {
+      return num;
+    }
+    const song = getActiveSong();
+    const activeSec = song?.sections?.[state.currentSectionIndex] || song?.sections?.[0];
+    const secBeats = Number(activeSec?.beats);
+    if (!isNaN(secBeats) && secBeats >= 2 && secBeats <= 31) {
+      return secBeats;
+    }
+    return 4;
+  }
+
   function renderBatchAccents(beats) {
     elements.batchAccentControls.replaceChildren();
     // '변경 없음' 버튼 추가
@@ -1737,17 +1751,15 @@
     keepBtn.dataset.beat = 'keep';
     elements.batchAccentControls.append(keepBtn);
 
-    const numBeats = Number(beats);
-    if (!isNaN(numBeats) && numBeats >= 2 && numBeats <= 31) {
-      for (let b = 0; b < numBeats; b += 1) {
-        const selected = !state.batchAccentsKeep && state.batchAccents.includes(b);
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = `ed-accent-beat${selected ? ' selected' : ''}`;
-        btn.textContent = `${b + 1}박`;
-        btn.dataset.beat = String(b);
-        elements.batchAccentControls.append(btn);
-      }
+    const numBeats = resolveBatchBeatsCount(beats);
+    for (let b = 0; b < numBeats; b += 1) {
+      const selected = !state.batchAccentsKeep && state.batchAccents.includes(b);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `ed-accent-beat${selected ? ' selected' : ''}`;
+      btn.textContent = `${b + 1}박`;
+      btn.dataset.beat = String(b);
+      elements.batchAccentControls.append(btn);
     }
   }
 
