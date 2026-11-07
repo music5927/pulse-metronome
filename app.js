@@ -59,7 +59,19 @@
     jumpBarHelp: $('jump-bar-help'),
     jumpBarInput: $('jump-bar-input'),
     btnJumpCancel: $('btn-jump-cancel'),
-    btnJumpConfirm: $('btn-jump-confirm')
+    btnJumpConfirm: $('btn-jump-confirm'),
+    // 전체 마디 구간 일괄 수정 모달
+    batchEditorModal: $('batch-editor-modal'),
+    batchEditorBackdrop: $('batch-editor-backdrop'),
+    batchBtnClose: $('batch-btn-close'),
+    batchBars: $('batch-bars'),
+    batchBpm: $('batch-bpm'),
+    batchBeats: $('batch-beats'),
+    batchDivision: $('batch-division'),
+    batchGuideVoice: $('batch-guide-voice'),
+    batchAccentControls: $('batch-accent-controls'),
+    batchBtnCancel: $('batch-btn-cancel'),
+    batchBtnSave: $('batch-btn-save')
   };
 
   const SETTINGS_KEY = 'pulse-metronome-settings-v10';
@@ -892,7 +904,9 @@
     tapTimes: [],
     // 에디터 상태
     editingSectionIndex: null,
-    edAccents: [0]
+    edAccents: [0],
+    batchAccents: [0],
+    lastScrolledSectionIndex: null
   };
 
   // Web Audio 기반 고정밀 가이드 보이스 엔진 (내장 여성 스프라이트)
@@ -1105,6 +1119,13 @@
     elements.beatCount.textContent = sec.beats;
   }
 
+  function scrollActiveSectionIntoView(behavior = 'smooth') {
+    const activeEl = elements.sectionsList.querySelector('.section-item.is-active');
+    if (activeEl) {
+      activeEl.scrollIntoView({ behavior, block: 'center' });
+    }
+  }
+
   // 2. 트랙 메트로놈에서 section 항목을 시작버튼 아래로 렌더링
   function renderSectionsTimeline() {
     const song = getActiveSong();
@@ -1174,10 +1195,17 @@
     elements.songProgressBadge.classList.toggle('hidden', !isSong);
 
     if (isSong) {
+      elements.tap.classList.add('batch-edit-btn');
+      elements.tap.innerHTML = '<span class="tap-icon">📝</span><span>일괄 수정</span>';
+      elements.tap.setAttribute('aria-label', '전체 구간 일괄 수정');
       renderSongSelect();
       updateSongMonitorUI();
       renderSectionsTimeline();
+      scrollActiveSectionIntoView('auto');
     } else {
+      elements.tap.classList.remove('batch-edit-btn');
+      elements.tap.innerHTML = 'TAP<span>템포 맞추기</span>';
+      elements.tap.setAttribute('aria-label', '탭 템포 측정');
       updateSingleUI();
     }
   }
@@ -1363,6 +1391,10 @@
             renderBeat(beat, accent, `${curSec.name} · ${measure + 1}/${curSec.bars}마디`);
             updateSongMonitorUI();
             renderSectionsTimeline();
+            if (state.lastScrolledSectionIndex !== secIdx) {
+              scrollActiveSectionIntoView('smooth');
+              state.lastScrolledSectionIndex = secIdx;
+            }
 
             if (isTwoBarsBeforeName && nextGuideSec) {
               addLog('GUIDE_VOICE_SECTION', { target: nextGuideSec.name, bar: measure + 1 });
@@ -1408,6 +1440,8 @@
                   state.lastTransition = { from: previousSectionName, to: transitionedSection.name };
                   updateSongMonitorUI();
                   renderSectionsTimeline();
+                  scrollActiveSectionIntoView('smooth');
+                  state.lastScrolledSectionIndex = state.currentSectionIndex;
                   setStatus(`${transitionedSection.name} 구간으로 전환`, true);
                   addLog('TRACK_SECTION_CHANGE', { from: previousSectionName, to: transitionedSection.name });
                 }
@@ -1437,6 +1471,8 @@
         state.nextNoteTime = state.audioContext.currentTime + 0.05;
         updateSongMonitorUI();
         renderSectionsTimeline();
+        scrollActiveSectionIntoView('smooth');
+        state.lastScrolledSectionIndex = state.currentSectionIndex;
         addLog('PLAY_START', { mode: 'song', songId: song.id, songName: song.name, secIdx: state.currentSectionIndex });
       }
       scheduler();
@@ -1478,6 +1514,8 @@
     state.currentBeat = 0;
     updateSongMonitorUI();
     renderSectionsTimeline();
+    scrollActiveSectionIntoView('smooth');
+    state.lastScrolledSectionIndex = 0;
     persistPlaybackPosition();
     setStatus('1마디로 이동');
     addLog('TRACK_REWIND');
@@ -1491,6 +1529,8 @@
     state.currentBeat = 0;
     updateSongMonitorUI();
     renderSectionsTimeline();
+    scrollActiveSectionIntoView('smooth');
+    state.lastScrolledSectionIndex = idx;
     persistPlaybackPosition();
     setStatus(`${song.sections[idx].name} 구간으로 이동`);
     addLog('TRACK_SEEK', { secIdx: idx, name: song.sections[idx].name });
@@ -1518,8 +1558,7 @@
         setStatus(`전체 ${target}마디 (${song.sections[i].name} ${state.currentMeasure + 1}/${secBars})로 이동`);
         addLog('TRACK_SEEK_TOTAL_BAR', { targetBar: target, secIdx: i, secMeasure: state.currentMeasure });
 
-        const activeEl = elements.sectionsList.querySelector(`.section-item[data-index="${i}"]`);
-        activeEl?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        scrollActiveSectionIntoView('smooth');
         return;
       }
       accumulated += secBars;
@@ -1682,6 +1721,77 @@
     closeSectionEditor();
     updateSongMonitorUI();
     renderSectionsTimeline();
+  }
+
+  // 4, 5, 6. 전체 마디 구간 일괄 수정
+  function renderBatchAccents(beats) {
+    elements.batchAccentControls.replaceChildren();
+    for (let b = 0; b < beats; b += 1) {
+      const selected = state.batchAccents.includes(b);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `ed-accent-beat${selected ? ' selected' : ''}`;
+      btn.textContent = `${b + 1}박`;
+      btn.dataset.beat = String(b);
+      elements.batchAccentControls.append(btn);
+    }
+  }
+
+  function openBatchEditor() {
+    const song = getActiveSong();
+    if (!song.sections || song.sections.length === 0) {
+      setStatus('일괄 수정할 마디 구간이 없습니다.');
+      return;
+    }
+    const baseSec = song.sections[state.currentSectionIndex] || song.sections[0];
+    elements.batchBars.value = baseSec.bars || 4;
+    elements.batchBpm.value = baseSec.bpm || 120;
+    elements.batchBeats.value = String(clamp(Number(baseSec.beats) || 4, 2, 31));
+    elements.batchDivision.value = String([2, 4, 8, 16, 32].includes(Number(baseSec.division)) ? Number(baseSec.division) : 4);
+    elements.batchGuideVoice.checked = baseSec.guideVoice !== false;
+    state.batchAccents = normaliseAccents(baseSec.accentBeats, Number(elements.batchBeats.value));
+    renderBatchAccents(Number(elements.batchBeats.value));
+    elements.batchEditorModal.classList.remove('hidden');
+    addLog('BATCH_EDITOR_OPEN', { songId: song.id, songName: song.name, sectionCount: song.sections.length });
+  }
+
+  function closeBatchEditor() {
+    elements.batchEditorModal.classList.add('hidden');
+  }
+
+  function saveBatchEditor() {
+    const song = getActiveSong();
+    if (!song.sections || song.sections.length === 0) {
+      closeBatchEditor();
+      return;
+    }
+    const bars = clamp(Math.round(Number(elements.batchBars.value) || 4), 1, 999);
+    const bpm = clamp(Math.round(Number(elements.batchBpm.value) || 120), 30, 400);
+    const beats = clamp(Math.round(Number(elements.batchBeats.value) || 4), 2, 31);
+    const division = [2, 4, 8, 16, 32].includes(Number(elements.batchDivision.value)) ? Number(elements.batchDivision.value) : 4;
+    const guideVoice = elements.batchGuideVoice.checked;
+    const accentBeats = normaliseAccents(state.batchAccents, beats);
+
+    song.sections.forEach((sec) => {
+      sec.bars = bars;
+      sec.bpm = bpm;
+      sec.beats = beats;
+      sec.division = division;
+      sec.guideVoice = guideVoice;
+      sec.accentBeats = [...accentBeats];
+    });
+
+    persistSongs();
+    updateSongMonitorUI();
+    renderSectionsTimeline();
+    persistPlaybackPosition();
+    closeBatchEditor();
+    setStatus(`전체 ${song.sections.length}개 구간 일괄 수정 완료`);
+    addLog('BATCH_SECTIONS_UPDATE', {
+      songId: song.id,
+      count: song.sections.length,
+      bars, bpm, beats, division, guideVoice, accentBeats
+    });
   }
 
   // 탭별 고정 가이드 화면 제어
@@ -1917,7 +2027,13 @@
 
   // 공통 컨트롤
   elements.play.addEventListener('click', togglePlayback);
-  elements.tap.addEventListener('click', tapTempo);
+  elements.tap.addEventListener('click', () => {
+    if (state.mode === 'song') {
+      openBatchEditor();
+    } else {
+      tapTempo();
+    }
+  });
   elements.mute.addEventListener('click', () => {
     state.muted = !state.muted;
     updateSoundButton();
@@ -2130,6 +2246,28 @@
     renderEditorAccents(Number(elements.edBeats.value));
   });
 
+  // 일괄 수정 모달 이벤트
+  elements.batchBtnClose?.addEventListener('click', closeBatchEditor);
+  elements.batchEditorBackdrop?.addEventListener('click', closeBatchEditor);
+  elements.batchBtnCancel?.addEventListener('click', closeBatchEditor);
+  elements.batchBtnSave?.addEventListener('click', saveBatchEditor);
+
+  elements.batchBeats?.addEventListener('change', (e) => {
+    const b = Number(e.target.value);
+    state.batchAccents = normaliseAccents(state.batchAccents, b);
+    renderBatchAccents(b);
+  });
+
+  elements.batchAccentControls?.addEventListener('click', (e) => {
+    const btn = e.target.closest('.ed-accent-beat');
+    if (!btn) return;
+    const b = Number(btn.dataset.beat);
+    state.batchAccents = state.batchAccents.includes(b)
+      ? state.batchAccents.filter((x) => x !== b)
+      : [...state.batchAccents, b].sort((x, y) => x - y);
+    renderBatchAccents(Number(elements.batchBeats.value));
+  });
+
   // 키보드 스페이스바 재생/정지
   document.addEventListener('keydown', (e) => {
     if (e.code === 'Space' && !['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(document.activeElement?.tagName)) {
@@ -2138,17 +2276,30 @@
     }
   });
 
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && state.playing && state.audioContext) {
-      state.nextNoteTime = state.audioContext.currentTime + 0.05;
+  document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState === 'visible') {
+      if (state.playing && state.audioContext) {
+        if (state.audioContext.state === 'suspended') {
+          try { await state.audioContext.resume(); } catch (_) {}
+        }
+        state.nextNoteTime = state.audioContext.currentTime + 0.05;
+      }
+    } else {
+      persistPlaybackPosition();
+      persistSettings();
     }
   });
   window.addEventListener('pagehide', () => {
     persistPlaybackPosition();
-    stop();
+    persistSettings();
   });
-  window.addEventListener('pageshow', () => {
-    if (!state.playing) {
+  window.addEventListener('pageshow', async () => {
+    if (state.playing && state.audioContext) {
+      if (state.audioContext.state === 'suspended') {
+        try { await state.audioContext.resume(); } catch (_) {}
+      }
+      state.nextNoteTime = state.audioContext.currentTime + 0.05;
+    } else {
       restorePlaybackPosition();
       updateSongMonitorUI();
       if (state.mode === 'song') renderSectionsTimeline();
@@ -2172,6 +2323,7 @@
     }),
     VoiceGuide,
     start, stop, togglePlayback, setSingleTempo, seekToSection, seekToTotalMeasure, openJumpBarModal, closeJumpBarModal, rewindSong,
-    openOptionsModal, closeOptionsModal, submitRecentLogs, addLog
+    openOptionsModal, closeOptionsModal, submitRecentLogs, addLog,
+    openBatchEditor, closeBatchEditor, saveBatchEditor, openSectionEditor, closeSectionEditor
   };
 })();

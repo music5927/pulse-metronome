@@ -15,11 +15,19 @@
 }
 
 * { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  -webkit-overflow-scrolling: touch;
+}
 body {
-  margin: 0; min-height: 100dvh; color: var(--ink);
+  min-height: 100dvh; color: var(--ink);
   background: radial-gradient(circle at 50% -10%, #313a4b 0, #171b24 36%, #10131a 80%);
   display: flex; justify-content: center; align-items: flex-start;
-  padding: 8px 8px max(8px, env(safe-area-inset-bottom));
+  padding: max(16px, env(safe-area-inset-top, 16px)) 8px max(10px, env(safe-area-inset-bottom, 10px));
 }
 button, input, select { font: inherit; }
 button { cursor: pointer; }
@@ -84,8 +92,8 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 
 .app-shell {
   width: min(100%, 480px);
-  height: min(780px, calc(100dvh - 16px - env(safe-area-inset-bottom)));
-  min-height: min(780px, calc(100dvh - 16px - env(safe-area-inset-bottom)));
+  height: min(780px, calc(100dvh - max(16px, env(safe-area-inset-top, 16px)) - max(10px, env(safe-area-inset-bottom, 10px))));
+  min-height: min(780px, calc(100dvh - max(16px, env(safe-area-inset-top, 16px)) - max(10px, env(safe-area-inset-bottom, 10px))));
   background: linear-gradient(150deg, rgba(35,42,56,.95), rgba(18,22,30,.98));
   border: 1px solid var(--line); border-radius: 22px; box-shadow: var(--shadow);
   overflow: hidden; display: flex; flex-direction: column;
@@ -93,7 +101,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 
 /* 상단 헤더: 좌측 상태, 우측 정사각형 옵션 메뉴 버튼 */
 .app-header {
-  padding: 10px 16px 6px; display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px 8px; display: flex; align-items: center; justify-content: space-between;
   flex-shrink: 0;
 }
 .header-left { display: flex; align-items: center; }
@@ -352,7 +360,40 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .button-subtle { height: 32px; border: 1px solid var(--line); border-radius: 7px; background: transparent; color: var(--muted); font-weight: 800; font-size: .75rem; }
 .button-primary { height: 32px; border: 0; border-radius: 7px; background: linear-gradient(135deg, var(--accent-bright), var(--accent)); color: #472014; font-weight: 900; font-size: .78rem; }
 
-/* 하단 모드 전환 탭 바 */
+.tap-button.batch-edit-btn {
+  background: rgba(255,192,107,.12);
+  border-color: rgba(255,192,107,.4);
+  color: var(--accent-bright);
+}
+.tap-button.batch-edit-btn:hover {
+  background: rgba(255,192,107,.2);
+  border-color: var(--accent-bright);
+}
+.tap-button.batch-edit-btn span {
+  color: var(--accent-bright);
+  font-weight: 850;
+}
+
+/* [일괄 수정 모달] */
+.batch-modal {
+  position: fixed; inset: 0; z-index: 1010; display: grid; place-items: center; padding: 14px;
+}
+.batch-modal-backdrop {
+  position: absolute; inset: 0; background: rgba(0,0,0,.68); backdrop-filter: blur(4px);
+}
+.batch-modal-card {
+  position: relative; width: min(100%, 410px); max-height: calc(100dvh - 30px);
+  background: #1c212c; border: 1px solid rgba(255,192,107,.5); border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.65); padding: 14px 16px;
+  overflow-y: auto; display: flex; flex-direction: column; gap: 8px;
+  animation: popIn .18s ease-out;
+}
+.batch-modal-card .editor-header strong {
+  font-size: .92rem;
+}
+.batch-help-desc {
+  margin: 0; font-size: .68rem; color: var(--muted); line-height: 1.4;
+}
 .bottom-mode-nav {
   display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 3px;
   margin: auto 16px 5px; background: rgba(0,0,0,.35); border: 1px solid var(--line);
