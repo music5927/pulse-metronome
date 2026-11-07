@@ -386,13 +386,6 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .opt-group-label { font-size: .78rem; font-weight: 850; color: var(--accent-bright); }
 .opt-val-badge { padding: 1px 7px; border-radius: 999px; background: rgba(255,192,107,.15); color: var(--accent-bright); font-size: .7rem; font-weight: 850; }
 .volume-slider-wrap { display: grid; grid-template-columns: 20px 1fr 20px; align-items: center; gap: 8px; margin-top: 4px; }
-.voice-gender-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 2px; }
-.gender-option { position: relative; display: block; cursor: pointer; }
-.gender-option input { position: absolute; opacity: 0; pointer-events: none; }
-.gender-option span { display: block; padding: 9px 6px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-subtle); color: var(--muted); text-align: center; font-size: .7rem; font-weight: 800; transition: .12s ease; }
-.gender-option input:checked + span { border-color: var(--accent); background: rgba(255,128,95,.16); color: var(--accent-bright); box-shadow: 0 0 0 1px rgba(255,128,95,.12); }
-.gender-option:hover span { background: var(--surface-hover); }
-.gender-option input:focus-visible + span { outline: 3px solid rgba(255,192,107,.82); outline-offset: 2px; }
 .vol-icon { font-size: .85rem; text-align: center; }
 .opt-help-text { margin: 0; font-size: .66rem; color: var(--muted); line-height: 1.4; }
 

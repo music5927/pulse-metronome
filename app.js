@@ -46,7 +46,6 @@
     accentRadios: document.querySelectorAll('input[name="accent-visual"]'),
     voiceVolumeSlider: $('voice-volume-slider'),
     voiceVolumeDisplay: $('voice-volume-display'),
-    voiceGenderRadios: document.querySelectorAll('input[name="opt-voice-gender"]'),
     // 로그 제출 안내 팝업
     logAlertModal: $('log-alert-modal'), btnAlertClose: $('btn-alert-close'),
     logAlertMessage: $('log-alert-message'),
@@ -850,8 +849,7 @@
     // 옵션: 악센트 표시방법 (fullscreen | partial | off) & 보이스 가이드 볼륨 (0~100)
     options: {
       accentVisual: ['fullscreen', 'partial', 'off'].includes(savedSettings.accentVisual) ? savedSettings.accentVisual : 'partial',
-      voiceVolume: clamp(Number(savedSettings.voiceVolume ?? 80), 0, 100),
-      voiceType: ['female', 'male'].includes(savedSettings.voiceType) ? savedSettings.voiceType : 'female'
+      voiceVolume: clamp(Number(savedSettings.voiceVolume ?? 80), 0, 100)
     },
     // 트랙 메트로놈 프리셋
     songs: savedSongs,
@@ -872,10 +870,10 @@
     edAccents: [0]
   };
 
-  // Web Audio 기반 고정밀 가이드 보이스 엔진 (내장 스프라이트: 여성 / 남성)
+  // Web Audio 기반 고정밀 가이드 보이스 엔진 (내장 여성 스프라이트)
   const VoiceGuide = {
     audioContext: null,
-    spriteBuffers: {},
+    spriteBuffer: null,
     voiceGain: null,
     isReady: false,
     isLoading: false,
@@ -890,18 +888,15 @@
       }
       if (this.isReady || this.isLoading || !this.audioContext) return;
 
-      const sprites = window.VOICE_SPRITES || {
-        female: { data: window.VOICE_SPRITE_DATA, map: window.VOICE_SPRITE_MAP }
-      };
+      const spriteData = window.VOICE_SPRITE_DATA;
+      if (!spriteData) return;
+
       this.isLoading = true;
       try {
-        await Promise.all(Object.entries(sprites).map(async ([type, sprite]) => {
-          if (!sprite?.data) return;
-          const res = await fetch(sprite.data);
-          const arrayBuf = await res.arrayBuffer();
-          this.spriteBuffers[type] = await this.audioContext.decodeAudioData(arrayBuf);
-        }));
-        this.isReady = Boolean(this.spriteBuffers.female || this.spriteBuffers.male);
+        const res = await fetch(spriteData);
+        const arrayBuf = await res.arrayBuffer();
+        this.spriteBuffer = await this.audioContext.decodeAudioData(arrayBuf);
+        this.isReady = Boolean(this.spriteBuffer);
       } catch (e) {
         console.warn('Voice sprite decode error', e);
       } finally {
@@ -919,26 +914,19 @@
     playClip(key, scheduleTime = null, bpm = null) {
       if (!this.audioContext) return;
       const lookupKey = String(key || '').toLowerCase().replace(/brigde/i, 'bridge').trim();
-      const selectedType = state.options.voiceType === 'male' ? 'male' : 'female';
-      const sprites = window.VOICE_SPRITES || {
-        female: { map: window.VOICE_SPRITE_MAP }
-      };
-      const selectedSprite = sprites[selectedType] || sprites.female;
-      const item = selectedSprite?.map?.[lookupKey];
-      const spriteBuffer = this.spriteBuffers[selectedType] || this.spriteBuffers.female;
+      const spriteMap = window.VOICE_SPRITE_MAP;
+      const item = spriteMap?.[lookupKey];
 
-      if (this.isReady && spriteBuffer && item) {
+      if (this.isReady && this.spriteBuffer && item) {
         try {
           const source = this.audioContext.createBufferSource();
-          source.buffer = spriteBuffer;
+          source.buffer = this.spriteBuffer;
           // 어떤 BPM에서도 원본 속도/피치를 고정하여 자연스러운 톤을 유지한다.
           source.playbackRate.value = 1.0;
           source.connect(this.voiceGain || state.masterCompressor || this.audioContext.destination);
           const startTime = scheduleTime !== null ? Math.max(scheduleTime, this.audioContext.currentTime) : this.audioContext.currentTime;
           source.start(startTime, item.start, item.duration);
         } catch (_) {}
-      } else {
-        this.speakFallback(key);
       }
     },
 
@@ -951,18 +939,6 @@
 
     speakCount(number, scheduleTime = null, bpm = null) {
       this.playClip(String(number), scheduleTime, bpm);
-    },
-
-    speakFallback(text) {
-      try {
-        if (typeof window === 'undefined' || !window.speechSynthesis) return;
-        const utter = new SpeechSynthesisUtterance(String(text));
-        utter.lang = 'en-US';
-        utter.volume = (state.options.voiceVolume / 100);
-        utter.rate = 1.25;
-        utter.pitch = state.options.voiceType === 'male' ? 0.85 : 1.2;
-        window.speechSynthesis.speak(utter);
-      } catch (_) {}
     }
   };
 
@@ -978,7 +954,6 @@
       volume: state.volume, muted: state.muted, accentBeats: state.accentBeats,
       accentVisual: state.options.accentVisual,
       voiceVolume: state.options.voiceVolume,
-      voiceType: state.options.voiceType,
       activeSongId: state.activeSongId
     }));
   }
@@ -1650,9 +1625,6 @@
       elements.voiceVolumeSlider.value = state.options.voiceVolume;
       elements.voiceVolumeDisplay.textContent = `${state.options.voiceVolume}%`;
     }
-    elements.voiceGenderRadios?.forEach((radio) => {
-      radio.checked = radio.value === state.options.voiceType;
-    });
     elements.optionsModal.classList.remove('hidden');
     addLog('OPTIONS_OPEN');
   }
@@ -1761,15 +1733,6 @@
     VoiceGuide.setVolume(vol);
     persistSettings();
     addLog('VOICE_VOLUME_CHANGE', { volume: vol });
-  });
-
-  elements.voiceGenderRadios?.forEach((radio) => {
-    radio.addEventListener('change', (e) => {
-      if (!e.target.checked) return;
-      state.options.voiceType = e.target.value === 'male' ? 'male' : 'female';
-      persistSettings();
-      addLog('VOICE_TYPE_CHANGE', { voiceType: state.options.voiceType });
-    });
   });
 
   elements.btnSubmitLogs.addEventListener('click', submitRecentLogs);
