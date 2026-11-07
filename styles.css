@@ -15,7 +15,11 @@
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; min-height: 100dvh; color: var(--ink); background: radial-gradient(circle at 50% -10%, #313a4b 0, #171b24 36%, #10131a 80%); display: grid; place-items: center; padding: 6px 8px; }
+body {
+  margin: 0; min-height: 100dvh; color: var(--ink);
+  background: radial-gradient(circle at 50% -10%, #313a4b 0, #171b24 36%, #10131a 80%);
+  display: flex; justify-content: center; align-items: flex-start; padding: 8px;
+}
 button, input, select { font: inherit; }
 button { cursor: pointer; }
 button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid rgba(255,192,107,.82); outline-offset: 3px; }
@@ -79,6 +83,8 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 
 .app-shell {
   width: min(100%, 480px);
+  height: min(780px, calc(100dvh - 16px));
+  min-height: min(780px, calc(100dvh - 16px));
   background: linear-gradient(150deg, rgba(35,42,56,.95), rgba(18,22,30,.98));
   border: 1px solid var(--line); border-radius: 22px; box-shadow: var(--shadow);
   overflow: hidden; display: flex; flex-direction: column;
@@ -87,6 +93,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 /* 상단 헤더: 좌측 상태, 우측 정사각형 옵션 메뉴 버튼 */
 .app-header {
   padding: 10px 16px 6px; display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
 }
 .header-left { display: flex; align-items: center; }
 .status {
@@ -106,10 +113,12 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 
 .hidden { display: none !important; }
 
-/* 공통 박자 시각화 영역 (한 화면 컴팩트 최적화) */
+/* 공통 박자 시각화 영역 (탭 전환 시에도 고정된 일관된 높이) */
 .beat-visual-section {
   border-block: 1px solid var(--line); padding: 8px 16px 6px;
   background: rgba(0,0,0,.14); text-align: center;
+  height: 114px; min-height: 114px; max-height: 114px; flex-shrink: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
 }
 .beat-light {
   width: 72px; height: 72px; margin: 0 auto 3px; border-radius: 50%;
@@ -132,7 +141,11 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 #badge-section-name { background: var(--accent-bright); color: #472014; padding: 1px 6px; border-radius: 4px; }
 #badge-total-bar { color: var(--muted); font-weight: 600; }
 
-/* [VIEW 1] 기본 메트로놈 뷰 (한 화면 최적화) */
+/* [VIEW 1] 기본 메트로놈 뷰 (탭 공통 콘텐츠 영역) */
+#view-single {
+  flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column;
+  -webkit-overflow-scrolling: touch;
+}
 .tempo-panel { padding: 6px 16px 8px; }
 .section-label { margin: 0; font-size: .62rem; font-weight: 800; letter-spacing: .16em; color: var(--muted); }
 .tempo-display {
@@ -199,6 +212,10 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 }
 
 /* [VIEW 2] 트랙 메트로놈 상단 뷰 */
+#view-track-top { flex-shrink: 0; }
+#view-track-sections {
+  flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden;
+}
 .song-preset-panel { padding: 4px 16px 4px; }
 .song-preset-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
 .song-manage-actions { display: flex; gap: 3px; }
@@ -250,8 +267,8 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .is-playing .play-icon { width: 10px; height: 11px; border: 0; border-inline: 4px solid currentColor; }
 
 /* [VIEW 3] 트랙 메트로놈 하단 뷰 (시작 버튼 아래로 이동한 Section 항목) */
-.sections-timeline-panel { padding: 2px 16px 6px; }
-.timeline-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.sections-timeline-panel { padding: 2px 16px 6px; display: flex; min-height: 0; flex: 1; flex-direction: column; }
+.timeline-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; flex-shrink: 0; }
 .timeline-header-left { display: flex; align-items: center; gap: 8px; }
 .jump-bar-btn {
   padding: 3px 8px; border-radius: 6px; font-size: .68rem; font-weight: 800;
@@ -262,7 +279,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .jump-bar-btn:active { transform: scale(.96); }
 .timeline-help { margin: 1px 0 0; font-size: .62rem; color: var(--muted); }
 .count-badge { padding: 2px 6px; border-radius: 999px; background: var(--surface-subtle); border: 1px solid var(--line); font-size: .64rem; font-weight: 800; color: var(--muted); }
-.sections-list { display: flex; flex-direction: column; gap: 4px; max-height: 155px; overflow-y: auto; margin-bottom: 5px; -webkit-overflow-scrolling: touch; }
+.sections-list { display: flex; flex: 1; min-height: 0; flex-direction: column; gap: 4px; overflow-y: auto; margin-bottom: 5px; -webkit-overflow-scrolling: touch; }
 .sections-list::-webkit-scrollbar { width: 4px; }
 .sections-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 999px; }
 .section-item {
@@ -320,8 +337,8 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 /* 하단 모드 전환 탭 바 */
 .bottom-mode-nav {
   display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 3px;
-  margin: 3px 16px 5px; background: rgba(0,0,0,.35); border: 1px solid var(--line);
-  border-radius: 11px;
+  margin: auto 16px 5px; background: rgba(0,0,0,.35); border: 1px solid var(--line);
+  border-radius: 11px; flex-shrink: 0;
 }
 .mode-tab {
   border: 0; padding: 6px 8px; border-radius: 8px; font-size: .76rem; font-weight: 800;
@@ -369,6 +386,13 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .opt-group-label { font-size: .78rem; font-weight: 850; color: var(--accent-bright); }
 .opt-val-badge { padding: 1px 7px; border-radius: 999px; background: rgba(255,192,107,.15); color: var(--accent-bright); font-size: .7rem; font-weight: 850; }
 .volume-slider-wrap { display: grid; grid-template-columns: 20px 1fr 20px; align-items: center; gap: 8px; margin-top: 4px; }
+.voice-gender-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 2px; }
+.gender-option { position: relative; display: block; cursor: pointer; }
+.gender-option input { position: absolute; opacity: 0; pointer-events: none; }
+.gender-option span { display: block; padding: 9px 6px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-subtle); color: var(--muted); text-align: center; font-size: .7rem; font-weight: 800; transition: .12s ease; }
+.gender-option input:checked + span { border-color: var(--accent); background: rgba(255,128,95,.16); color: var(--accent-bright); box-shadow: 0 0 0 1px rgba(255,128,95,.12); }
+.gender-option:hover span { background: var(--surface-hover); }
+.gender-option input:focus-visible + span { outline: 3px solid rgba(255,192,107,.82); outline-offset: 2px; }
 .vol-icon { font-size: .85rem; text-align: center; }
 .opt-help-text { margin: 0; font-size: .66rem; color: var(--muted); line-height: 1.4; }
 
