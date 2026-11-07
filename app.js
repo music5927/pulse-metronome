@@ -872,7 +872,7 @@
     edAccents: [0]
   };
 
-  // Web Audio 기반 고정밀 가이드 보이스 엔진 (내장 스프라이트: 여성 Samantha / 남성 Alex)
+  // Web Audio 기반 고정밀 가이드 보이스 엔진 (내장 스프라이트: 여성 / 남성)
   const VoiceGuide = {
     audioContext: null,
     spriteBuffers: {},
