@@ -43,13 +43,10 @@
     // 옵션 메뉴 모달
     optionsModal: $('options-modal'), optionsBackdrop: $('options-backdrop'),
     btnCloseOptions: $('btn-close-options'), btnOpenOptionsGuide: $('btn-open-options-guide'), btnSubmitLogs: $('btn-submit-logs'),
-    // 실시간 인터랙티브 코치마크 가이드
-    guideOverlay: $('guide-overlay'), guideSvg: $('guide-svg'),
-    guideSpotMask: $('guide-spot-mask'), guideSpotFrame: $('guide-spot-frame'),
-    guideArrowPath: $('guide-arrow-path'), guideArrowDot: $('guide-arrow-dot'),
-    guideCard: $('guide-card'), guideCardCat: $('guide-card-cat'), guideCardStep: $('guide-card-step'),
-    guideCardTitle: $('guide-card-title'), guideCardDesc: $('guide-card-desc'),
-    btnCloseGuide: $('btn-guide-close'), btnGuidePrev: $('btn-guide-prev'), btnGuideNext: $('btn-guide-next'),
+    // 고정 가이드 화면
+    guideScreen: $('guide-screen'), guideScreenImg: $('guide-screen-img'),
+    btnGuideScreenClose: $('btn-guide-screen-close'),
+    guideZonePrev: $('guide-zone-prev'), guideZoneNext: $('guide-zone-next'),
     accentRadios: document.querySelectorAll('input[name="accent-visual"]'),
     voiceVolumeSlider: $('voice-volume-slider'),
     voiceVolumeDisplay: $('voice-volume-display'),
@@ -71,70 +68,21 @@
   const LOOKAHEAD_MS = 25;
   const SILENT_WAV = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQQAAAAA';
 
-  // 실시간 탭별 코치마크 가이드 데이터
-  const GUIDE_STEPS = {
+  // 탭별 고정 가이드 이미지 세트
+  const GUIDE_SETS = {
     single: [
-      {
-        cat: '⏱️ 기본 메트로놈',
-        title: '정밀 템포(BPM) 조절 및 비트 시각화',
-        desc: '• <b>30 ~ 400 BPM</b> 범위에서 슬라이더 또는 <b style="color:#ffc06b">−</b> / <b style="color:#ffc06b">+</b> 버튼으로 1단위 세밀 조절이 가능합니다.<br/>• 상단 중앙 대형 링에서 현재 진행 박자와 강박 타이밍이 시각적으로 실시간 표시됩니다.',
-        selector: '.tempo-panel',
-        side: 'below'
-      },
-      {
-        cat: '⏱️ 기본 메트로놈',
-        title: '박자 수(2~31) 및 음표 단위 선택',
-        desc: '• <b>박자:</b> 2박자부터 최대 31박자까지 폭넓은 변박 및 복합 박자를 지원합니다.<br/>• <b>음표:</b> 2분음표, 4분음표, 8분음표, 16분음표, 32분음표 단위를 자유롭게 지정할 수 있습니다.<br/>• <b>볼륨:</b> 메트로놈 기본 비트 사운드의 출력 음량을 즉시 조절합니다.',
-        selector: '.beat-settings-panel',
-        side: 'below'
-      },
-      {
-        cat: '⏱️ 기본 메트로놈',
-        title: '다중 강박(Accent) 자유 지정',
-        desc: '• 원하는 박자 번호(1박, 3박 등)를 직접 터치하여 복수의 강박을 자유롭게 활성화할 수 있습니다.<br/>• 활성화된 강박 번호는 주황색으로 강조되며, 해당 박자 도달 시 더 강렬한 사운드와 시각 효과로 피드백됩니다.',
-        selector: '.accent-panel',
-        side: 'below'
-      },
-      {
-        cat: '⏱️ 기본 메트로놈',
-        title: 'TAP 템포 감지 및 재생 / 정지',
-        desc: '• <b>TAP 버튼:</b> 원하는 리듬 속도로 화면을 2회 이상 연속 터치하면 평균 속도를 실시간 감지하여 자동으로 BPM이 맞춰집니다.<br/>• <b>시작 버튼:</b> 고정밀 Web Audio 메트로놈을 재생/정지합니다.<br/>• <b>소리 버튼:</b> 비트 사운드 출력을 즉시 음소거하거나 켤 수 있습니다.',
-        selector: '.controls',
-        side: 'above'
-      }
+      'guide_images/step_guide_01_tempo.jpg',
+      'guide_images/step_guide_02_meter_division.jpg',
+      'guide_images/step_guide_03_accent.jpg',
+      'guide_images/step_guide_04_tap_play.jpg'
     ],
     song: [
-      {
-        cat: '🎵 트랙 메트로놈',
-        title: '곡 프리셋 관리 및 트랙 진행 제어',
-        desc: '• <b>곡 프리셋:</b> 드롭다운에서 저장된 곡을 선택하고, <b>+ 새 곡</b>, <b>✏️ 이름</b>, <b>📋 복제</b>, <b>🗑️ 삭제</b>로 손쉽게 관리합니다.<br/>• <b>진행 모니터:</b> 현재 연주 중인 파트명, 누적 마디 수, BPM 및 박자를 실시간 표시합니다.<br/>• <b>루프 제어:</b> <b>⏮ 처음부터</b> 되감기 및 <b>🔁 전곡 반복</b> 기능을 제공합니다.',
-        selector: '#view-track-top',
-        side: 'below'
-      },
-      {
-        cat: '🎵 트랙 메트로놈',
-        title: '구간(Section) 타임라인 & 보이스 가이드',
-        desc: '• <b>변속 · 변박 구성:</b> 각 파트마다 마디 수, BPM, 박자, 강박을 독립 설정하여 자동으로 순차 전환됩니다.<br/>• <b>여성 보이스 가이드:</b> 다음 가이드 Section 전환 <b>2마디 전 첫 박</b>에 파트명(Intro, Verse 등)을, <b>1마디 전</b>에 카운트다운(1, 2, 3, 4)을 내장 여성 음성으로 미리 알려줍니다.<br/>• <b>마디 이동 & 추가:</b> <b>📍 전체 마디</b> 버튼으로 원하는 마디로 바로 점프하거나 새 Section을 추가할 수 있습니다.',
-        selector: '#view-track-sections',
-        side: 'above'
-      }
+      'guide_images/step_guide_05_track_presets.jpg',
+      'guide_images/step_guide_06_sections_voice.jpg'
     ],
     options: [
-      {
-        cat: '⚙️ 설정 & 옵션',
-        title: '강박(악센트) 시각 효과 모드',
-        desc: '• 메트로놈이 강박에 도달했을 때 번쩍이는 시각 이펙트 모드를 선택할 수 있습니다.<br/>• <b>전체화면:</b> 화면 전체가 번쩍이며 강박을 확실하게 인지할 수 있습니다.<br/>• <b>부분화면:</b> 중앙 원형 링만 반짝이는 깔끔한 기본 상태입니다.<br/>• <b>끄기:</b> 시각 반짝임 효과 없이 사운드만 재생합니다.',
-        selector: '.options-modal-body .opt-group:nth-child(1)',
-        side: 'below'
-      },
-      {
-        cat: '⚙️ 설정 & 옵션',
-        title: '여성 보이스 볼륨 & 1분 로그 관리',
-        desc: '• <b>보이스 가이드 볼륨:</b> 파트명 및 카운트 여성 음성 볼륨을 0% ~ 100%로 세밀하게 조절하여 클릭음과 최적의 밸런스를 맞춥니다.<br/>• <b>로그 제출:</b> 동작 오류나 이슈가 있을 때 최근 1분간의 런타임 로그를 클립보드로 즉시 복사합니다.<br/>• <b>버전 정보:</b> 현재 최신 버전은 <b>App ver 0.1.1</b>입니다.',
-        selector: '.options-modal-body .opt-group:nth-child(2)',
-        customHeight: 210,
-        side: 'above'
-      }
+      'guide_images/step_guide_07_accent_visual.jpg',
+      'guide_images/step_guide_08_voice_volume_log.jpg'
     ]
   };
   const guideState = { scope: 'single', index: 0 };
@@ -1691,102 +1639,48 @@
     renderSectionsTimeline();
   }
 
-  // 탭별 실시간 인터랙티브 코치마크 가이드
+  // 탭별 고정 가이드 화면 제어
   function renderGuide() {
-    const list = GUIDE_STEPS[guideState.scope];
+    const list = GUIDE_SETS[guideState.scope];
     if (!list) return;
-    const total = list.length;
-    const index = clamp(guideState.index, 0, total - 1);
+    const index = clamp(guideState.index, 0, list.length - 1);
     guideState.index = index;
-    const item = list[index];
-    const isLast = index === total - 1;
-
-    elements.guideCardCat.textContent = item.cat;
-    elements.guideCardStep.textContent = `STEP ${index + 1} / ${total}`;
-    elements.guideCardTitle.textContent = item.title;
-    elements.guideCardDesc.innerHTML = item.desc;
-
-    elements.btnGuidePrev.disabled = index === 0;
-
-    elements.btnGuideNext.textContent = isLast ? '완료' : '다음 단계';
-    if (isLast) {
-      elements.btnGuideNext.classList.add('is-last');
-    } else {
-      elements.btnGuideNext.classList.remove('is-last');
-    }
-
-    const targetEl = document.querySelector(item.selector);
-    if (!targetEl) return;
-    const r = targetEl.getBoundingClientRect();
-    const pad = 4;
-    const h = item.customHeight || r.height;
-    const spot = {
-      x: Math.round(r.x - pad),
-      y: Math.round(r.y - pad),
-      w: Math.round(r.width + pad * 2),
-      h: Math.round(h + pad * 2),
-      rx: 16
-    };
-
-    elements.guideSpotMask.setAttribute('x', spot.x);
-    elements.guideSpotMask.setAttribute('y', spot.y);
-    elements.guideSpotMask.setAttribute('width', spot.w);
-    elements.guideSpotMask.setAttribute('height', spot.h);
-
-    elements.guideSpotFrame.setAttribute('x', spot.x);
-    elements.guideSpotFrame.setAttribute('y', spot.y);
-    elements.guideSpotFrame.setAttribute('width', spot.w);
-    elements.guideSpotFrame.setAttribute('height', spot.h);
-
-    // Position card
-    const cardHeight = elements.guideCard.offsetHeight || 195;
-    let cardY = 0;
-    if (item.side === 'below') {
-      cardY = spot.y + spot.h + 20;
-    } else {
-      cardY = spot.y - cardHeight - 20;
-      if (cardY < 60) cardY = 60;
-    }
-    elements.guideCard.style.top = `${cardY}px`;
-
-    // Dynamic curve arrow
-    const cardRect = elements.guideCard.getBoundingClientRect();
-    const startX = Math.round(cardRect.left + cardRect.width / 2);
-    const startY = item.side === 'below' ? Math.round(cardRect.top) : Math.round(cardRect.bottom);
-    const endX = Math.round(spot.x + spot.w / 2);
-    const endY = item.side === 'below' ? Math.round(spot.y + spot.h + 2) : Math.round(spot.y - 2);
-
-    const midX = (startX + endX) / 2 + (item.side === 'below' ? -12 : 12);
-    const midY = (startY + endY) / 2;
-
-    elements.guideArrowPath.setAttribute('d', `M ${startX} ${startY} Q ${midX} ${midY} ${endX} ${endY}`);
-    elements.guideArrowDot.setAttribute('cx', startX);
-    elements.guideArrowDot.setAttribute('cy', startY);
+    elements.guideScreenImg.src = list[index];
   }
 
   function openGuide(scope = state.mode) {
-    if (!GUIDE_STEPS[scope]) return;
+    if (!GUIDE_SETS[scope]) return;
     guideState.scope = scope;
     guideState.index = 0;
-    elements.guideOverlay.classList.remove('hidden');
     renderGuide();
+    elements.guideScreen.classList.remove('hidden');
+    // 뒷배경 화면 스크롤 및 터치 이동 원천 차단
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.touchAction = 'none';
+    document.documentElement.style.touchAction = 'none';
     addLog('GUIDE_OPEN', { scope });
   }
 
   function closeGuide() {
-    if (elements.guideOverlay.classList.contains('hidden')) return;
-    elements.guideOverlay.classList.add('hidden');
+    if (elements.guideScreen.classList.contains('hidden')) return;
+    elements.guideScreen.classList.add('hidden');
+    document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
+    document.body.style.touchAction = '';
+    document.documentElement.style.touchAction = '';
     addLog('GUIDE_CLOSE', { scope: guideState.scope });
   }
 
   function moveGuide(step) {
-    const total = GUIDE_STEPS[guideState.scope].length;
+    const list = GUIDE_SETS[guideState.scope];
+    if (!list) return;
     const next = guideState.index + step;
-    if (next >= total) {
+    if (next >= list.length) {
       closeGuide();
       return;
     }
-    guideState.index = clamp(next, 0, total - 1);
+    guideState.index = clamp(next, 0, list.length - 1);
     renderGuide();
   }
 
@@ -1890,18 +1784,20 @@
   elements.optionsBackdrop.addEventListener('click', closeOptionsModal);
   elements.btnOpenGuide.addEventListener('click', () => openGuide(state.mode));
   elements.btnOpenOptionsGuide.addEventListener('click', () => openGuide('options'));
-  elements.btnCloseGuide.addEventListener('click', closeGuide);
-  elements.btnGuidePrev.addEventListener('click', () => moveGuide(-1));
-  elements.btnGuideNext.addEventListener('click', () => moveGuide(1));
+  elements.btnGuideScreenClose.addEventListener('click', closeGuide);
+  elements.guideZonePrev.addEventListener('click', () => moveGuide(-1));
+  elements.guideZoneNext.addEventListener('click', () => moveGuide(1));
 
-  // 가이드 화면 바깥 클릭 및 윈도우 리사이즈 대응
-  elements.guideOverlay.addEventListener('click', (e) => {
-    if (e.target === elements.guideOverlay || e.target.tagName.toLowerCase() === 'svg' || e.target.tagName.toLowerCase() === 'rect') {
-      moveGuide(1);
-    }
-  });
-  window.addEventListener('resize', () => {
-    if (!elements.guideOverlay.classList.contains('hidden')) renderGuide();
+  // 터치 스크롤 및 화면 이동 차단 (한 화면에 완벽 고정)
+  elements.guideScreen.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+  elements.guideScreen.addEventListener('wheel', (e) => e.preventDefault(), { passive: false });
+
+  // 키보드 조작 대응 (ESC 닫기, 좌우 화살표 이동)
+  window.addEventListener('keydown', (e) => {
+    if (elements.guideScreen.classList.contains('hidden')) return;
+    if (e.key === 'Escape') closeGuide();
+    else if (e.key === 'ArrowRight') moveGuide(1);
+    else if (e.key === 'ArrowLeft') moveGuide(-1);
   });
 
   elements.accentRadios.forEach((radio) => {

@@ -438,64 +438,34 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .modal-cancel-btn { background: var(--surface-subtle); color: var(--muted); border: 1px solid var(--line); }
 .modal-cancel-btn:hover { background: var(--surface-hover); color: var(--ink); }
 
-/* [앱 내 탭별 실시간 인터랙티브 코치마크 가이드] */
-.guide-overlay {
-  position: fixed; inset: 0; z-index: 1200; pointer-events: auto;
+/* [앱 내 탭별 고정 가이드 화면] */
+.guide-screen {
+  position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh;
+  z-index: 99999; background: #060a12; display: flex; align-items: center; justify-content: center;
+  overflow: hidden; touch-action: none; overscroll-behavior: none;
+  user-select: none; -webkit-user-select: none;
 }
-.guide-svg {
-  position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1201;
+.guide-screen-stage {
+  position: relative; width: 100%; height: 100%; max-width: 440px; max-height: 100dvh;
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
 }
-.guide-close-btn {
-  position: fixed; top: 14px; right: 16px; width: 34px; height: 34px; border-radius: 50%;
-  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.22); color: #cbd5e1;
-  font-size: 1.25rem; display: grid; place-items: center; cursor: pointer; z-index: 1210;
-  backdrop-filter: blur(8px); transition: all .15s ease; padding: 0;
+.guide-screen-img {
+  display: block; width: 100%; height: 100%; object-fit: contain; pointer-events: none;
+  user-select: none; -webkit-user-drag: none;
 }
-.guide-close-btn:hover { background: rgba(255,255,255,0.22); color: #fff; }
-.guide-card {
-  position: fixed; left: 16px; right: 16px; max-width: 358px; margin: 0 auto; z-index: 1205;
-  background: rgba(18, 24, 38, 0.97); border: 1.5px solid rgba(255, 192, 107, 0.45);
-  border-radius: 18px; box-shadow: 0 16px 45px rgba(0,0,0,0.85); padding: 16px 18px;
-  box-sizing: border-box; backdrop-filter: blur(12px); font-family: inherit;
-  animation: popIn .18s ease-out;
+.guide-screen-close-btn {
+  position: absolute; top: 12px; right: 14px; width: 34px; height: 34px; border-radius: 50%;
+  background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.25); color: #ffffff;
+  font-size: 1.25rem; display: grid; place-items: center; cursor: pointer; z-index: 20;
+  backdrop-filter: blur(8px); padding: 0; line-height: 1; transition: all .15s ease;
 }
-.guide-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-.guide-card-category {
-  font-size: 0.75rem; font-weight: 800; color: #ff9d7a; background: rgba(255,109,67,0.18);
-  border: 1px solid rgba(255,109,67,0.35); padding: 2px 8px; border-radius: 99px; letter-spacing: 0.02em;
+.guide-screen-close-btn:hover { background: rgba(0,0,0,0.8); border-color: rgba(255,255,255,0.5); }
+.guide-screen-zone {
+  position: absolute; top: 0; height: 100%; z-index: 10; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
-.guide-card-step {
-  font-size: 0.75rem; font-weight: 850; color: #cbd5e1; background: rgba(255,255,255,0.08);
-  padding: 2px 9px; border-radius: 99px;
-}
-.guide-card-title {
-  margin: 0 0 7px; font-size: 0.96rem; font-weight: 850; color: #ffffff; letter-spacing: -0.02em; line-height: 1.3;
-}
-.guide-card-desc {
-  font-size: 0.78rem; font-weight: 500; color: #b8c7db; line-height: 1.55; margin-bottom: 14px;
-}
-.guide-card-footer {
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  border-top: 1px solid rgba(255,255,255,0.10); padding-top: 11px;
-}
-.guide-card-btn {
-  display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem;
-  padding: 8px 18px; border-radius: 9px; font-weight: 800; cursor: pointer; font-family: inherit;
-  transition: all .12s ease;
-}
-.guide-card-btn.prev {
-  border: 1px solid rgba(255,255,255,0.2); color: #cbd5e1; background: none;
-}
-.guide-card-btn.prev:not(:disabled):hover { background: rgba(255,255,255,0.08); color: #fff; }
-.guide-card-btn.prev:disabled { opacity: 0.35; cursor: default; }
-.guide-card-btn.next {
-  padding: 8px 22px; background: rgba(255,109,67,0.22); color: #ff9d7a;
-  border: 1px solid rgba(255,109,67,0.5);
-}
-.guide-card-btn.next:hover { filter: brightness(1.1); }
-.guide-card-btn.next.is-last {
-  background: #ff6d43; color: #ffffff; border: 1px solid #ff6d43;
-}
+.guide-screen-zone.prev { left: 0; width: 40%; }
+.guide-screen-zone.next { right: 0; width: 60%; }
 
 @media (max-width: 420px) {
   .app-header, .tempo-panel, .beat-settings-panel, .song-preset-panel, .song-monitor-panel, .sections-timeline-panel, .controls { padding-left: 10px; padding-right: 10px; }
