@@ -1,5 +1,5 @@
 // Pulse Metronome Service Worker
-const CACHE_NAME = 'pulse-metronome-v13';
+const CACHE_NAME = 'pulse-metronome-v14';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
