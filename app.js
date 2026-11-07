@@ -64,6 +64,7 @@
 
   const SETTINGS_KEY = 'pulse-metronome-settings-v10';
   const SONGS_KEY = 'pulse-metronome-songs-v12';
+  const PLAYBACK_POSITION_KEY = 'pulse-metronome-playback-position-v1';
   const SCHEDULE_AHEAD_SECONDS = 0.12;
   const LOOKAHEAD_MS = 25;
   const SILENT_WAV = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQQAAAAA';
@@ -859,7 +860,7 @@
   })();
 
   const state = {
-    mode: 'single', // 시작페이지는 항상 '기본 메트로놈' 탭으로 설정
+    mode: ['single', 'song'].includes(savedSettings.mode) ? savedSettings.mode : 'single',
     // 1. BPM 범위 30~400
     bpm: clamp(Number(savedSettings.bpm) || 120, 30, 400),
     // 2. 박자 범위 2~31
@@ -880,6 +881,7 @@
     // 트랙 런타임 상태
     currentSectionIndex: 0,
     currentMeasure: 0,
+    lastTransition: null,
     // 공통 런타임 상태
     playing: false,
     currentBeat: 0,
@@ -979,6 +981,28 @@
       voiceVolume: state.options.voiceVolume,
       activeSongId: state.activeSongId
     }));
+  }
+
+  function persistPlaybackPosition() {
+    localStorage.setItem(PLAYBACK_POSITION_KEY, JSON.stringify({
+      songId: state.activeSongId,
+      sectionIndex: state.currentSectionIndex,
+      measure: state.currentMeasure,
+      beat: state.currentBeat
+    }));
+  }
+
+  function restorePlaybackPosition() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(PLAYBACK_POSITION_KEY));
+      const song = getActiveSong();
+      if (!saved || saved.songId !== song.id) return;
+      const sectionIndex = clamp(Number(saved.sectionIndex) || 0, 0, Math.max(0, song.sections.length - 1));
+      const section = song.sections[sectionIndex];
+      state.currentSectionIndex = sectionIndex;
+      state.currentMeasure = clamp(Number(saved.measure) || 0, 0, Math.max(0, Number(section?.bars || 1) - 1));
+      state.currentBeat = clamp(Number(saved.beat) || 0, 0, Math.max(0, Number(section?.beats || 1) - 1));
+    } catch (_) {}
   }
 
   function persistSongs() {
@@ -1354,6 +1378,7 @@
           state.currentBeat = 0;
           state.currentMeasure += 1;
           if (state.currentMeasure >= curSec.bars) {
+            const previousSectionName = curSec.name;
             state.currentMeasure = 0;
             state.currentSectionIndex += 1;
             if (state.currentSectionIndex >= song.sections.length) {
@@ -1375,8 +1400,22 @@
                 }, stopDelay);
               }
             }
+            const transitionedSection = song.sections[state.currentSectionIndex];
+            if (transitionedSection) {
+              persistPlaybackPosition();
+              window.setTimeout(() => {
+                if (state.playing && state.mode === 'song' && state.currentSectionIndex === song.sections.indexOf(transitionedSection)) {
+                  state.lastTransition = { from: previousSectionName, to: transitionedSection.name };
+                  updateSongMonitorUI();
+                  renderSectionsTimeline();
+                  setStatus(`${transitionedSection.name} 구간으로 전환`, true);
+                  addLog('TRACK_SECTION_CHANGE', { from: previousSectionName, to: transitionedSection.name });
+                }
+              }, delay + (60 / curSec.bpm) * 1000);
+            }
           }
         }
+        persistPlaybackPosition();
       }
     }
   }
@@ -1414,6 +1453,7 @@
 
   function stop() {
     if (!state.playing) return;
+    persistPlaybackPosition();
     state.playing = false;
     window.clearInterval(state.schedulerTimer);
     state.schedulerTimer = null;
@@ -1438,6 +1478,7 @@
     state.currentBeat = 0;
     updateSongMonitorUI();
     renderSectionsTimeline();
+    persistPlaybackPosition();
     setStatus('1마디로 이동');
     addLog('TRACK_REWIND');
   }
@@ -1450,6 +1491,7 @@
     state.currentBeat = 0;
     updateSongMonitorUI();
     renderSectionsTimeline();
+    persistPlaybackPosition();
     setStatus(`${song.sections[idx].name} 구간으로 이동`);
     addLog('TRACK_SEEK', { secIdx: idx, name: song.sections[idx].name });
   }
@@ -1472,6 +1514,7 @@
         }
         updateSongMonitorUI();
         renderSectionsTimeline();
+        persistPlaybackPosition();
         setStatus(`전체 ${target}마디 (${song.sections[i].name} ${state.currentMeasure + 1}/${secBars})로 이동`);
         addLog('TRACK_SEEK_TOTAL_BAR', { targetBar: target, secIdx: i, secMeasure: state.currentMeasure });
 
@@ -1597,11 +1640,13 @@
 
     renderEditorAccents(Number(elements.edBeats.value));
     elements.sectionEditor.classList.remove('hidden');
-    elements.sectionEditor.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    elements.viewTrackSections.classList.add('is-editor-open');
+    elements.sectionEditor.scrollIntoView({ behavior: 'auto', block: 'end' });
   }
 
   function closeSectionEditor() {
     elements.sectionEditor.classList.add('hidden');
+    elements.viewTrackSections.classList.remove('is-editor-open');
     state.editingSectionIndex = null;
   }
 
@@ -2098,9 +2143,20 @@
       state.nextNoteTime = state.audioContext.currentTime + 0.05;
     }
   });
-  window.addEventListener('pagehide', stop);
+  window.addEventListener('pagehide', () => {
+    persistPlaybackPosition();
+    stop();
+  });
+  window.addEventListener('pageshow', () => {
+    if (!state.playing) {
+      restorePlaybackPosition();
+      updateSongMonitorUI();
+      if (state.mode === 'song') renderSectionsTimeline();
+    }
+  });
 
   // 초기 렌더링
+  restorePlaybackPosition();
   updateSoundButton();
   updateModeView();
 

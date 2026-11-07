@@ -1,5 +1,5 @@
 // Pulse Metronome Service Worker
-const CACHE_NAME = 'pulse-metronome-v9';
+const CACHE_NAME = 'pulse-metronome-v10';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -8,7 +8,15 @@ const ASSETS_TO_CACHE = [
   './voice-data.js',
   './manifest.json',
   './icon-192.png',
-  './icon-512.png'
+  './icon-512.png',
+  './guide_images/step_guide_01_tempo.jpg',
+  './guide_images/step_guide_02_meter_division.jpg',
+  './guide_images/step_guide_03_accent.jpg',
+  './guide_images/step_guide_04_tap_play.jpg',
+  './guide_images/step_guide_05_track_presets.jpg',
+  './guide_images/step_guide_06_sections_voice.jpg',
+  './guide_images/step_guide_07_accent_visual.jpg',
+  './guide_images/step_guide_08_voice_volume_log.jpg'
 ];
 
 self.addEventListener('install', (event) => {

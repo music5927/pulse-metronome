@@ -18,7 +18,8 @@
 body {
   margin: 0; min-height: 100dvh; color: var(--ink);
   background: radial-gradient(circle at 50% -10%, #313a4b 0, #171b24 36%, #10131a 80%);
-  display: flex; justify-content: center; align-items: flex-start; padding: 8px;
+  display: flex; justify-content: center; align-items: flex-start;
+  padding: 8px 8px max(8px, env(safe-area-inset-bottom));
 }
 button, input, select { font: inherit; }
 button { cursor: pointer; }
@@ -83,8 +84,8 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 
 .app-shell {
   width: min(100%, 480px);
-  height: min(780px, calc(100dvh - 16px));
-  min-height: min(780px, calc(100dvh - 16px));
+  height: min(780px, calc(100dvh - 16px - env(safe-area-inset-bottom)));
+  min-height: min(780px, calc(100dvh - 16px - env(safe-area-inset-bottom)));
   background: linear-gradient(150deg, rgba(35,42,56,.95), rgba(18,22,30,.98));
   border: 1px solid var(--line); border-radius: 22px; box-shadow: var(--shadow);
   overflow: hidden; display: flex; flex-direction: column;
@@ -217,6 +218,21 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 #view-track-top { flex-shrink: 0; }
 #view-track-sections {
   flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden;
+}
+/* Android 제스처/네비게이션 영역이 겹치는 작은 화면에서는 편집 카드를 자체 스크롤한다. */
+#view-track-sections.is-editor-open {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+}
+#view-track-sections.is-editor-open .sections-timeline-panel {
+  flex: 0 0 auto;
+}
+#view-track-sections.is-editor-open .sections-list {
+  max-height: 94px;
+}
+#view-track-sections.is-editor-open .section-editor-panel {
+  scroll-margin-bottom: calc(12px + env(safe-area-inset-bottom));
 }
 .song-preset-panel { padding: 4px 16px 4px; }
 .song-preset-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
