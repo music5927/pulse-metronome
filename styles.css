@@ -438,35 +438,64 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .modal-cancel-btn { background: var(--surface-subtle); color: var(--muted); border: 1px solid var(--line); }
 .modal-cancel-btn:hover { background: var(--surface-hover); color: var(--ink); }
 
-/* [탭별 사용 가이드 모달] */
-.guide-modal {
-  position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center; padding: 10px;
+/* [앱 내 탭별 실시간 인터랙티브 코치마크 가이드] */
+.guide-overlay {
+  position: fixed; inset: 0; z-index: 1200; pointer-events: auto;
 }
-.guide-modal-backdrop { position: absolute; inset: 0; background: rgba(3, 6, 12, .82); backdrop-filter: blur(5px); }
-.guide-modal-card {
-  position: relative; z-index: 1; width: min(100%, 430px); max-height: calc(100dvh - 20px);
-  overflow: hidden; display: flex; flex-direction: column; background: #171d29;
-  border: 1px solid rgba(255,192,107,.45); border-radius: 18px; box-shadow: 0 22px 70px rgba(0,0,0,.72);
+.guide-svg {
+  position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1201;
+}
+.guide-close-btn {
+  position: fixed; top: 14px; right: 16px; width: 34px; height: 34px; border-radius: 50%;
+  background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.22); color: #cbd5e1;
+  font-size: 1.25rem; display: grid; place-items: center; cursor: pointer; z-index: 1210;
+  backdrop-filter: blur(8px); transition: all .15s ease; padding: 0;
+}
+.guide-close-btn:hover { background: rgba(255,255,255,0.22); color: #fff; }
+.guide-card {
+  position: fixed; left: 16px; right: 16px; max-width: 358px; margin: 0 auto; z-index: 1205;
+  background: rgba(18, 24, 38, 0.97); border: 1.5px solid rgba(255, 192, 107, 0.45);
+  border-radius: 18px; box-shadow: 0 16px 45px rgba(0,0,0,0.85); padding: 16px 18px;
+  box-sizing: border-box; backdrop-filter: blur(12px); font-family: inherit;
   animation: popIn .18s ease-out;
 }
-.guide-modal-header {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  padding: 10px 13px; border-bottom: 1px solid var(--line); background: rgba(0,0,0,.22);
+.guide-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.guide-card-category {
+  font-size: 0.75rem; font-weight: 800; color: #ff9d7a; background: rgba(255,109,67,0.18);
+  border: 1px solid rgba(255,109,67,0.35); padding: 2px 8px; border-radius: 99px; letter-spacing: 0.02em;
 }
-.guide-step-label { margin: 0 0 2px; color: var(--accent-bright); font-size: .65rem; font-weight: 900; letter-spacing: .07em; }
-.guide-modal-title { margin: 0; color: var(--ink); font-size: .9rem; font-weight: 850; }
-.guide-image-wrap { min-height: 0; flex: 1; overflow-y: auto; background: #070a10; }
-.guide-image-wrap img { display: block; width: 100%; height: auto; }
-.guide-modal-footer {
-  display: flex; justify-content: space-between; gap: 10px; padding: 10px 13px;
-  border-top: 1px solid var(--line); background: rgba(0,0,0,.22);
+.guide-card-step {
+  font-size: 0.75rem; font-weight: 850; color: #cbd5e1; background: rgba(255,255,255,0.08);
+  padding: 2px 9px; border-radius: 99px;
 }
-.guide-nav-button { min-width: 92px; height: 38px; padding: 0 16px; border-radius: 9px; font: inherit; font-size: .82rem; font-weight: 850; }
-.guide-nav-button:disabled { opacity: .35; cursor: default; }
-.guide-nav-secondary { color: var(--ink); border: 1px solid var(--line); background: var(--surface-subtle); }
-.guide-nav-primary { margin-left: auto; color: #24140b; border: 1px solid rgba(255,192,107,.6); background: var(--accent-bright); }
-.guide-nav-secondary:not(:disabled):hover { background: var(--surface-hover); }
-.guide-nav-primary:hover { filter: brightness(1.06); }
+.guide-card-title {
+  margin: 0 0 7px; font-size: 0.96rem; font-weight: 850; color: #ffffff; letter-spacing: -0.02em; line-height: 1.3;
+}
+.guide-card-desc {
+  font-size: 0.78rem; font-weight: 500; color: #b8c7db; line-height: 1.55; margin-bottom: 14px;
+}
+.guide-card-footer {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  border-top: 1px solid rgba(255,255,255,0.10); padding-top: 11px;
+}
+.guide-card-btn {
+  display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem;
+  padding: 8px 18px; border-radius: 9px; font-weight: 800; cursor: pointer; font-family: inherit;
+  transition: all .12s ease;
+}
+.guide-card-btn.prev {
+  border: 1px solid rgba(255,255,255,0.2); color: #cbd5e1; background: none;
+}
+.guide-card-btn.prev:not(:disabled):hover { background: rgba(255,255,255,0.08); color: #fff; }
+.guide-card-btn.prev:disabled { opacity: 0.35; cursor: default; }
+.guide-card-btn.next {
+  padding: 8px 22px; background: rgba(255,109,67,0.22); color: #ff9d7a;
+  border: 1px solid rgba(255,109,67,0.5);
+}
+.guide-card-btn.next:hover { filter: brightness(1.1); }
+.guide-card-btn.next.is-last {
+  background: #ff6d43; color: #ffffff; border: 1px solid #ff6d43;
+}
 
 @media (max-width: 420px) {
   .app-header, .tempo-panel, .beat-settings-panel, .song-preset-panel, .song-monitor-panel, .sections-timeline-panel, .controls { padding-left: 10px; padding-right: 10px; }
