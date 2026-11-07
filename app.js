@@ -1835,9 +1835,6 @@
       if (!keepBpm && newBpm !== null) sec.bpm = newBpm;
       if (!keepBeats && newBeats !== null) {
         sec.beats = newBeats;
-        if (keepAccents) {
-          sec.accentBeats = normaliseAccents(sec.accentBeats, newBeats);
-        }
       }
       if (!keepDivision && newDivision !== null) sec.division = newDivision;
       if (!keepGuide && newGuide !== null) sec.guideVoice = newGuide;
