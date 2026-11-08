@@ -79,164 +79,9 @@
   const SETTINGS_KEY = 'pulse-metronome-settings-v10';
   const SONGS_KEY = 'pulse-metronome-songs-v12';
   const PLAYBACK_POSITION_KEY = 'pulse-metronome-playback-position-v1';
-  const SCHEDULE_AHEAD_SECONDS = 0.25;
+  const SCHEDULE_AHEAD_SECONDS = 0.12;
   const LOOKAHEAD_MS = 25;
   const SILENT_WAV = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQQAAAAA';
-
-  // 백그라운드 타이머 스로틀링(1초 제한) 방지를 위한 Web Worker 독립 타이머
-  const WorkerTimer = (() => {
-    let worker = null;
-    let fallbackTimer = null;
-    let onTickCallback = null;
-
-    try {
-      const blob = new Blob([
-        `let intervalId = null;
-        self.onmessage = function(e) {
-          if (e.data === 'start') {
-            if (intervalId) clearInterval(intervalId);
-            intervalId = setInterval(() => self.postMessage('tick'), 25);
-          } else if (e.data === 'stop') {
-            if (intervalId) clearInterval(intervalId);
-            intervalId = null;
-          }
-        };`
-      ], { type: 'application/javascript' });
-      worker = new Worker(URL.createObjectURL(blob));
-      worker.onmessage = (e) => {
-        if (e.data === 'tick' && typeof onTickCallback === 'function') {
-          onTickCallback();
-        }
-      };
-    } catch (_) {
-      worker = null;
-    }
-
-    return {
-      start(cb) {
-        onTickCallback = cb;
-        if (worker) {
-          worker.postMessage('start');
-        } else {
-          if (fallbackTimer) clearInterval(fallbackTimer);
-          fallbackTimer = window.setInterval(cb, LOOKAHEAD_MS);
-        }
-      },
-      stop() {
-        if (worker) {
-          worker.postMessage('stop');
-        }
-        if (fallbackTimer) {
-          clearInterval(fallbackTimer);
-          fallbackTimer = null;
-        }
-        onTickCallback = null;
-      },
-      isActive() {
-        return Boolean(onTickCallback);
-      }
-    };
-  })();
-
-  // Android에서는 포그라운드 서비스가 백그라운드 click 엔진을 담당한다.
-  // 브라우저에서는 Media Session만 사용하고 Web Audio 스케줄러가 그대로 재생한다.
-  function getNativePlaybackConfig() {
-    const config = {
-      mode: state?.mode || 'single',
-      bpm: state?.bpm || 120,
-      beats: state?.beats || 4,
-      division: state?.division || 4,
-      accentBeats: state?.accentBeats || [0],
-      currentSectionIndex: state?.currentSectionIndex || 0,
-      currentMeasure: state?.currentMeasure || 0,
-      currentBeat: state?.currentBeat || 0,
-      sequence: []
-    };
-    if (state?.mode === 'song') {
-      const song = getActiveSong();
-      config.sequence = (song?.sections || []).map((section) => ({
-        name: section.name || '구간',
-        bpm: section.bpm || 120,
-        beats: section.beats || 4,
-        division: section.division || 4,
-        bars: section.bars || 1,
-        accentBeats: section.accentBeats || [0]
-      }));
-    }
-    return JSON.stringify(config);
-  }
-
-  const NativeBackgroundAudio = {
-    start(title, message) {
-      const config = getNativePlaybackConfig();
-      try {
-        if (window.AndroidBackgroundAudio && typeof window.AndroidBackgroundAudio.start === 'function') {
-          window.AndroidBackgroundAudio.start(title || 'Pulse Metronome', message || '메트로놈 연주 중', config);
-          return true;
-        }
-      } catch (_) {}
-      try {
-        if ('mediaSession' in navigator) {
-          navigator.mediaSession.metadata = new MediaMetadata({
-            title: title || 'Pulse Metronome',
-            artist: message || '메트로놈 연주 중',
-            album: 'Pulse Precision Metronome'
-          });
-          navigator.mediaSession.playbackState = 'playing';
-        }
-      } catch (_) {}
-      return false;
-    },
-    activate() {
-      try {
-        if (window.AndroidBackgroundAudio && typeof window.AndroidBackgroundAudio.activate === 'function') {
-          window.AndroidBackgroundAudio.activate(getNativePlaybackConfig());
-          return true;
-        }
-      } catch (_) {}
-      return false;
-    },
-    deactivate() {
-      try {
-        if (window.AndroidBackgroundAudio && typeof window.AndroidBackgroundAudio.deactivate === 'function') {
-          window.AndroidBackgroundAudio.deactivate();
-        }
-      } catch (_) {}
-    },
-    getState() {
-      try {
-        if (window.AndroidBackgroundAudio && typeof window.AndroidBackgroundAudio.getPlaybackState === 'function') {
-          return JSON.parse(window.AndroidBackgroundAudio.getPlaybackState() || '{}');
-        }
-      } catch (_) {}
-      return null;
-    },
-    stop() {
-      try {
-        if (window.AndroidBackgroundAudio && typeof window.AndroidBackgroundAudio.stop === 'function') {
-          window.AndroidBackgroundAudio.stop();
-        }
-      } catch (_) {}
-      try {
-        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
-      } catch (_) {}
-    }
-  };
-
-  let silentAudioElement = null;
-  function ensureSilentAudioCarrier(play = true) {
-    try {
-      if (!silentAudioElement) {
-        silentAudioElement = new Audio(SILENT_WAV);
-        silentAudioElement.loop = true;
-      }
-      if (play) {
-        silentAudioElement.play().catch(() => {});
-      } else {
-        silentAudioElement.pause();
-      }
-    } catch (_) {}
-  }
 
   // 탭별 고정 가이드 이미지 세트
   const GUIDE_SETS = {
@@ -1056,7 +901,6 @@
     currentBeat: 0,
     nextNoteTime: 0,
     schedulerTimer: null,
-    nativePlaybackActive: false,
     audioContext: null,
     iosUnlockAudio: null,
     tapTimes: [],
@@ -1603,7 +1447,6 @@
                   state.lastScrolledSectionIndex = state.currentSectionIndex;
                   setStatus(`${transitionedSection.name} 구간으로 전환`, true);
                   addLog('TRACK_SECTION_CHANGE', { from: previousSectionName, to: transitionedSection.name });
-                  NativeBackgroundAudio.start(song.name || '트랙 메트로놈', `${transitionedSection.name} · ${transitionedSection.bpm} BPM`);
                 }
               }, delay + (60 / curSec.bpm) * 1000);
             }
@@ -1619,11 +1462,7 @@
       await ensureAudio();
       if (state.playing) return;
       state.playing = true;
-      state.nativePlaybackActive = false;
       state.currentBeat = 0;
-      let bgTitle = '기본 메트로놈';
-      let bgMessage = `${state.bpm} BPM · ${state.beats}/${state.division}박자`;
-
       if (state.mode === 'single') {
         state.nextNoteTime = state.audioContext.currentTime + 0.05;
         addLog('PLAY_START', { mode: 'single', bpm: state.bpm, beats: state.beats, division: state.division });
@@ -1632,10 +1471,6 @@
         if (!song.sections || song.sections.length === 0) {
           throw new Error('재생할 마디 구간이 없습니다.');
         }
-        const curSec = song.sections[state.currentSectionIndex];
-        bgTitle = song.name || '트랙 메트로놈';
-        bgMessage = `${curSec ? curSec.name : '구간'} · ${curSec ? curSec.bpm : 120} BPM`;
-
         state.nextNoteTime = state.audioContext.currentTime + 0.05;
         updateSongMonitorUI();
         renderSectionsTimeline();
@@ -1643,14 +1478,8 @@
         state.lastScrolledSectionIndex = state.currentSectionIndex;
         addLog('PLAY_START', { mode: 'song', songId: song.id, songName: song.name, secIdx: state.currentSectionIndex });
       }
-
-      ensureSilentAudioCarrier(true);
-      NativeBackgroundAudio.start(bgTitle, bgMessage);
-
       scheduler();
-      WorkerTimer.start(scheduler);
-      state.schedulerTimer = true;
-
+      state.schedulerTimer = window.setInterval(scheduler, LOOKAHEAD_MS);
       elements.play.classList.add('is-playing');
       elements.play.setAttribute('aria-pressed', 'true');
       elements.playLabel.textContent = '정지';
@@ -1665,14 +1494,8 @@
     if (!state.playing) return;
     persistPlaybackPosition();
     state.playing = false;
-
-    WorkerTimer.stop();
+    window.clearInterval(state.schedulerTimer);
     state.schedulerTimer = null;
-
-    ensureSilentAudioCarrier(false);
-    NativeBackgroundAudio.stop();
-    state.nativePlaybackActive = false;
-
     state.iosUnlockAudio?.pause();
     elements.play.classList.remove('is-playing');
     elements.play.setAttribute('aria-pressed', 'false');
@@ -2566,46 +2389,17 @@
     }
   });
 
-  function applyNativePlaybackState(nativeState) {
-    if (!nativeState || nativeState.running !== true) return;
-    if (Number.isInteger(nativeState.currentBeat)) state.currentBeat = nativeState.currentBeat;
-    if (state.mode === 'song') {
-      if (Number.isInteger(nativeState.currentSectionIndex)) state.currentSectionIndex = nativeState.currentSectionIndex;
-      if (Number.isInteger(nativeState.currentMeasure)) state.currentMeasure = nativeState.currentMeasure;
-    }
-  }
-
   document.addEventListener('visibilitychange', async () => {
     if (document.visibilityState === 'visible') {
-      if (state.playing) {
-        if (state.nativePlaybackActive) {
-          applyNativePlaybackState(NativeBackgroundAudio.getState());
-          NativeBackgroundAudio.deactivate();
-          state.nativePlaybackActive = false;
-        }
-        if (state.audioContext?.state === 'suspended') {
+      if (state.playing && state.audioContext) {
+        if (state.audioContext.state === 'suspended') {
           try { await state.audioContext.resume(); } catch (_) {}
         }
-        if (state.audioContext) state.nextNoteTime = state.audioContext.currentTime + 0.05;
-        scheduler();
-        WorkerTimer.start(scheduler);
-        state.schedulerTimer = true;
-      }
-      updateSongMonitorUI();
-      if (state.mode === 'song') {
-        renderSectionsTimeline();
-        scrollActiveSectionIntoView('auto');
+        state.nextNoteTime = state.audioContext.currentTime + 0.05;
       }
     } else {
       persistPlaybackPosition();
       persistSettings();
-      // WebView의 JS 타이머와 Web Audio가 정지되기 전에 네이티브 click 엔진으로 전환한다.
-      if (state.playing && NativeBackgroundAudio.activate()) {
-        state.nativePlaybackActive = true;
-        WorkerTimer.stop();
-        state.schedulerTimer = null;
-        addLog('NATIVE_BACKGROUND_START', { mode: state.mode });
-      }
     }
   });
   window.addEventListener('pagehide', () => {
@@ -2613,11 +2407,12 @@
     persistSettings();
   });
   window.addEventListener('pageshow', async () => {
-    if (document.visibilityState !== 'visible') return;
-    if (state.playing && state.audioContext?.state === 'suspended') {
-      try { await state.audioContext.resume(); } catch (_) {}
-    }
-    if (!state.playing) {
+    if (state.playing && state.audioContext) {
+      if (state.audioContext.state === 'suspended') {
+        try { await state.audioContext.resume(); } catch (_) {}
+      }
+      state.nextNoteTime = state.audioContext.currentTime + 0.05;
+    } else {
       restorePlaybackPosition();
       updateSongMonitorUI();
       if (state.mode === 'song') renderSectionsTimeline();
